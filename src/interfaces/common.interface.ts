@@ -13,7 +13,7 @@ export interface Obstacle {
 
 export interface Command {
   id: string;
-  type: 'F' | 'B' | 'L' | 'R' | 'scan' | 'return';
+  type: 'Z' | 'S' | 'Q' | 'D' | 'scan' | 'return';
   parameters?: any;
   timestamp: Date;
 }
