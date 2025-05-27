@@ -5,5 +5,6 @@ export interface IObstacles {
   isPathClear(target: Position): boolean;
   getObstacleAt(position: Position): Obstacle | null;
   detectNearbyObstacles(radius: number): Obstacle[];
-  avoidObstacle(obstacle: Obstacle): Promise<boolean>;
+  discoverObstacle(x: number, y: number): void;
+  hasDiscoveredObstacle(x: number, y: number): boolean;
 }

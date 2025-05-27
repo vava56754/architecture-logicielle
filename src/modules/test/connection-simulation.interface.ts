@@ -4,5 +4,10 @@ export interface IConnectionSimulation {
   simulatePacketLoss(percentage: number): void;
   simulateBandwidth(kbps: number): void;
   resetSimulation(): void;
-  getSimulationState(): any;
+  getSimulationState(): {
+    connected: boolean;
+    latency: number;
+    packetLoss: number;
+    bandwidth: number;
+  };
 }

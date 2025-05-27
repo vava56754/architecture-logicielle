@@ -1,18 +1,19 @@
 export interface Position {
   x: number;
   y: number;
-  z: number;
+  z?: number; // Optionnel pour la compatibilité 2D/3D
 }
 
 export interface Obstacle {
   position: Position;
-  type: string;
+  type: 'rock' | 'crater' | 'debris';
   size: number;
+  discovered?: boolean;
 }
 
 export interface Command {
   id: string;
-  type: 'move' | 'stop' | 'scan' | 'return';
+  type: 'F' | 'B' | 'L' | 'R' | 'scan' | 'return';
   parameters?: any;
   timestamp: Date;
 }
@@ -23,11 +24,21 @@ export interface Message {
   to: string;
   content: any;
   timestamp: Date;
+  type: 'command' | 'status' | 'data' | 'error';
 }
 
 export interface RoverStatus {
   position: Position;
+  orientation: 'N' | 'E' | 'S' | 'W';
   battery: number;
-  health: string;
+  health: 'healthy' | 'warning' | 'critical';
   mission: string;
+  obstacleDetected?: boolean;
+}
+
+export interface RoverState {
+  position: Position;
+  orientation: 'N' | 'E' | 'S' | 'W';
+  obstacleDetected: boolean;
+  lastCommand?: Command;
 }

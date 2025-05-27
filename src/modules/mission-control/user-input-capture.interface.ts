@@ -2,9 +2,8 @@ import { Command } from '../../interfaces/common.interface';
 
 export interface IUserInputCapture {
   captureUserInput(): Command;
-  validateInput(input: string): boolean;
+  validateCommand(command: string): boolean;
+  parseCommands(input: string): Command[];
   getInputHistory(): Command[];
   clearHistory(): void;
-  setInputMode(mode: 'manual' | 'automatic'): void;
-  getCurrentMode(): string;
 }

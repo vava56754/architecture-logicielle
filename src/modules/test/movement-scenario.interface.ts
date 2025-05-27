@@ -1,11 +1,10 @@
-import { Command } from '../../interfaces/common.interface';
+import { Command, RoverState } from '../../interfaces/common.interface';
 
 export interface IMovementScenario {
-  runMovementScenario(scenario: string): Promise<boolean>;
-  createCustomScenario(commands: Command[]): void;
+  runMovementScenario(scenario: string): Promise<RoverState>;
+  createCustomScenario(name: string, commands: Command[]): void;
   getAvailableScenarios(): string[];
-  pauseScenario(): void;
-  resumeScenario(): void;
-  stopScenario(): void;
+  loadPredefinedScenarios(): void;
+  validateScenario(commands: Command[]): boolean;
   getScenarioProgress(): number;
 }
