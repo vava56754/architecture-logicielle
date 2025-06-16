@@ -7,4 +7,5 @@ export interface IRepeater {
   isActive(): boolean;
   activate(): void;
   deactivate(): void;
+  transmitMessage(message: Message): Promise<boolean>;
 }

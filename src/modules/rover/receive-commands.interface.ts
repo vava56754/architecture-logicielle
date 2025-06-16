@@ -1,10 +1,10 @@
-import { Command } from '../../interfaces/common.interface';
+import { Command, RoverState } from '../../interfaces/common.interface';
 
 export interface IReceiveCommands {
   receiveCommand(command: Command): void;
-  processCommands(): void;
+  executeCommands(commands: string): RoverState;
+  executeCommand(command: string): RoverState;
   getCommandQueue(): Command[];
   clearQueue(): void;
-  getPendingCommandsCount(): number;
   isProcessing(): boolean;
 }

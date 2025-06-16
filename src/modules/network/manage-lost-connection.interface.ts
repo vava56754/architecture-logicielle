@@ -6,4 +6,5 @@ export interface IManageLostConnection {
   getConnectionAttempts(): number;
   isReconnecting(): boolean;
   onConnectionRestored(callback: () => void): void;
+  simulateConnectionLoss(): void;
 }
