@@ -1,7 +1,7 @@
 export interface Position {
   x: number;
   y: number;
-  z?: number; // Optionnel pour la compatibilité 2D/3D
+  z: number;
 }
 
 export interface Obstacle {
@@ -29,7 +29,7 @@ export interface Message {
 
 export interface RoverStatus {
   position: Position;
-  orientation: 'N' | 'E' | 'S' | 'W';
+  orientation: Orientation;
   battery: number;
   health: 'healthy' | 'warning' | 'critical';
   mission: string;
@@ -38,7 +38,11 @@ export interface RoverStatus {
 
 export interface RoverState {
   position: Position;
-  orientation: 'N' | 'E' | 'S' | 'W';
+  orientation: Orientation;
   obstacleDetected: boolean;
   lastCommand?: Command;
+}
+
+export interface Orientation {
+  orientation: 'N' | 'E' | 'S' | 'W';
 }
