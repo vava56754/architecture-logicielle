@@ -1,6 +1,6 @@
 import { Command, RoverState } from '../../interfaces/common.interface';
 
-export interface IReceiveCommands {
+export interface IReceiveCommand {
   receiveCommand(command: Command): void;
   executeCommands(commands: string): RoverState;
   executeCommand(command: string): RoverState;
