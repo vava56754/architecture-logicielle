@@ -1,4 +1,4 @@
-import { Position, Obstacle } from '../../interfaces/common.interface';
+import { Position, Obstacle } from '../../../interfaces/common.interface';
 
 export interface IMap {
   getWidth(): number;
