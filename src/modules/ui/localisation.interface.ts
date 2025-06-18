@@ -1,4 +1,4 @@
-import { Orientation, Position } from '../../../interfaces/common.interface';
+import { Orientation, Position } from '../../common/common.interface';
 
 export interface ILocalisation {
   updatePosition(position: Position): void;
@@ -7,6 +7,4 @@ export interface ILocalisation {
   setOrientation(orientation: Orientation): void;
   turnLeft(): Orientation;
   turnRight(): Orientation;
-  calibrate(): void;
-  isCalibrated(): boolean;
 }

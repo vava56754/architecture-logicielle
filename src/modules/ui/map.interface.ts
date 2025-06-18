@@ -1,4 +1,4 @@
-import { Position, Obstacle } from '../../../interfaces/common.interface';
+import { Position, Obstacle } from '../../common/common.interface';
 
 export interface IMap {
   getWidth(): number;
@@ -8,5 +8,4 @@ export interface IMap {
   displayMap(): void;
   isObstacle(x: number, y: number): boolean;
   getNextValidPosition(x: number, y: number, newX: number, newY: number): { x: number; y: number; obstacle: boolean };
-  wrapPosition(x: number, y: number): Position;
 }
