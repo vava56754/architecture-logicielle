@@ -1,9 +1,9 @@
-import { Orientation, Position } from '../../interfaces/common.interface';
+import { Orientation, Position } from '../../../interfaces/common.interface';
 
-export interface ILocalization {
+export interface ILocalisation {
   updatePosition(position: Position): void;
   getPosition(): Position;
-  getOrientation(): Orientation
+  getOrientation(): Orientation;
   setOrientation(orientation: Orientation): void;
   turnLeft(): Orientation;
   turnRight(): Orientation;
