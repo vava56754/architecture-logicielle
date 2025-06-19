@@ -1,7 +1,8 @@
-import { Command } from '../common/common.interface';
+import { Command } from '../rover/rover-types.interface';
 
 export interface IInput {
-  captureUserInput(): Command;
+  captureUserInput(): Promise<Command>;
   validateCommand(command: string): boolean;
-  getInputHistory(): Command[];
+  parseCommands(input: string): Command[];
+  close(): void;
 }
