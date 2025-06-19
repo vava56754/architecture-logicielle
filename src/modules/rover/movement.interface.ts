@@ -1,9 +1,14 @@
-import { Position, RoverState } from '../common/common.interface';
+import { Position, RoverState, Orientation } from './rover-types.interface';
 
-export interface IMovement {
+export interface IRoverControl {
+  // Localisation
+  updatePosition(position: Position): void;
+  getPosition(): Position;
+  getOrientation(): Orientation;
+  setOrientation(orientation: Orientation): void;
+  // Mouvement
   moveForward(): RoverState;
   moveBackward(): RoverState;
-  getCurrentPosition(): Position;
   turnLeft(): RoverState;
   turnRight(): RoverState;
 }
