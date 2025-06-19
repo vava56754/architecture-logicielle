@@ -1,4 +1,4 @@
-import { Position, RoverState } from '../../common/common.interface';
+import { Position, RoverState } from '../common/common.interface';
 
 export interface IMovement {
   moveForward(): RoverState;

@@ -1,4 +1,4 @@
-import { Orientation, Position } from '../../common/common.interface';
+import { Orientation, Position } from '../common/common.interface';
 
 export interface ILocalisation {
   updatePosition(position: Position): void;

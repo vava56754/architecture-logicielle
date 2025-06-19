@@ -1,4 +1,4 @@
-import { Position, Obstacle } from '../../common/common.interface';
+import { Position, Obstacle } from '../common/common.interface';
 
 export interface IObstacles {
   scanObstacles(): Obstacle[];

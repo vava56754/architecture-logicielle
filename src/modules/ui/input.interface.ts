@@ -1,4 +1,4 @@
-import { Command } from '../../common/common.interface';
+import { Command } from '../common/common.interface';
 
 export interface IInput {
   captureUserInput(): Command;

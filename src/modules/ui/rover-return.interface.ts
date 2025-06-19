@@ -1,4 +1,4 @@
-import { RoverStatus } from '../../common/common.interface';
+import { RoverStatus } from '../common/common.interface';
 
 export interface IRoverReturn {
   handleRoverResponse(response: any): void;
