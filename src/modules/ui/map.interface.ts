@@ -1,11 +1,6 @@
-import { Position, Obstacle } from '../../common/common.interface';
+import { Position, Obstacle } from '../common/common.interface';
 
 export interface IMap {
-  getWidth(): number;
-  getHeight(): number;
   updateMap(position: Position, obstacles: Obstacle[]): void;
-  getMapData(): any;
   displayMap(): void;
-  isObstacle(x: number, y: number): boolean;
-  getNextValidPosition(x: number, y: number, newX: number, newY: number): { x: number; y: number; obstacle: boolean };
 }
