@@ -233,6 +233,8 @@ class RoverMissionApp {
           result = await this.handleSolarCharging();
           break;
         case 'scan':
+          // When scanning, mark all obstacles as discovered
+          this.obstacles.discoverAllObstacles();
           result = {
             obstacles: this.obstacles.scanObstacles(),
             message: 'Scan complete. Obstacles detected and mapped.'
@@ -339,10 +341,10 @@ class RoverMissionApp {
     const position = this.roverControl.getPosition();
     const orientation = this.roverControl.getOrientation();
     
-    // Only show discovered obstacles on the map
-    const obstacles = this.obstacles.scanObstacles().filter(o => o.discovered);
+    // Get only discovered obstacles
+    const discoveredObstacles = this.obstacles.scanObstacles();
     
-    this.mapDisplay.updateMap(position, obstacles, orientation);
+    this.mapDisplay.updateMap(position, discoveredObstacles, orientation);
   }
   
   private simulateRoverResponse(command: Command, result: any): void {

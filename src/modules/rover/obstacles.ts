@@ -32,19 +32,30 @@ export class Obstacles implements IObstacles {
 
   isPathClear(target: Position): boolean {
     // Check if any obstacle is at the target position
-    return !this.obstacles.some(obstacle => 
+    const obstacle = this.obstacles.find(obstacle => 
       obstacle.position.x === target.x && 
       obstacle.position.y === target.y && 
       obstacle.position.z === target.z
     );
+    
+    // If there's an obstacle, mark it as discovered when rover encounters it
+    if (obstacle) {
+      obstacle.discovered = true;
+    }
+    
+    return !obstacle;
   }
 
   scanObstacles(): Obstacle[] {
-    // Mark all obstacles as discovered when scanning
+    // Only return obstacles that are already discovered
+    return this.obstacles.filter(obstacle => obstacle.discovered);
+  }
+
+  // Add a method to mark all obstacles as discovered (for scan command)
+  discoverAllObstacles(): void {
     this.obstacles.forEach(obstacle => {
       obstacle.discovered = true;
     });
-    return [...this.obstacles];
   }
 
   detectNearbyObstacles(radius: number): Obstacle[] {
@@ -95,3 +106,4 @@ export class Obstacles implements IObstacles {
     return !!obstacle;
   }
 }
+
