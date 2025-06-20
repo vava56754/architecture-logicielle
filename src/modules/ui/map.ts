@@ -192,7 +192,7 @@ export class MapDisplay implements IMap {
     
     // Update legend to show only generic obstacles
     legend.innerHTML = `
-      <div><span style="color: #00ff00;">◆</span> Rover</div>
+      <div><span style="color: #00ff00;">${this.getOrientationArrow()}</span> Rover</div>
       <div><span style="color: rgba(0,255,0,0.3);">●</span> Path</div>
       <div><span style="color: #8B4513;">■</span> Obstacle</div>
     `;
