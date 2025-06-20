@@ -69,8 +69,18 @@ export class CommandInput implements IInput {
   }
   
   async captureUserInput(): Promise<Command> {
-    return new Promise((resolve) => {
-      this.commandResolve = resolve;
+    return new Promise<Command>((resolve) => {
+      // Store the resolver to be called when form is submitted
+      this.commandResolve = () => {
+        // Return a valid command object with the first command as the type
+        // We'll use a placeholder valid type, and the actual processing will happen in parseCommands
+        resolve({
+          id: uuidv4(),
+          type: 'Z', // Use a valid type from the union
+          parameters: { rawInput: this.inputElement.value }, // Store the full input string in parameters
+          timestamp: new Date()
+        });
+      };
     });
   }
   
@@ -80,22 +90,42 @@ export class CommandInput implements IInput {
   
   parseCommands(input: string): Command[] {
     const commands: Command[] = [];
-    const parts = input.trim().split(/\s+/);
+    const inputUpper = input.trim().toUpperCase();
     
-    for (const part of parts) {
-      const upperPart = part.toUpperCase();
-      if (this.validateCommand(upperPart)) {
+    // Process each character as a separate command
+    for (let i = 0; i < inputUpper.length; i++) {
+      const char = inputUpper[i];
+      
+      // Handle single-character commands
+      if (['Z', 'S', 'Q', 'D'].includes(char)) {
         commands.push({
           id: uuidv4(),
-          type: upperPart as any, // Cast to any to handle potential type mismatch
+          type: char as 'Z' | 'S' | 'Q' | 'D', // Explicitly cast to valid command type
           timestamp: new Date(),
         });
+      } else if (char === ' ') {
+        // Skip spaces
+        continue;
+      } else {
+        // Special handling for multi-character commands
+        if (i + 4 <= inputUpper.length && inputUpper.substring(i, i + 4) === 'SCAN') {
+          commands.push({
+            id: uuidv4(),
+            type: 'scan',
+            timestamp: new Date(),
+          });
+          i += 3; // Skip the rest of "scan"
+        } else if (i + 6 <= inputUpper.length && inputUpper.substring(i, i + 6) === 'RETURN') {
+          commands.push({
+            id: uuidv4(),
+            type: 'return',
+            timestamp: new Date(),
+          });
+          i += 5; // Skip the rest of "return"
+        } else {
+          console.warn(`Invalid command character: ${char}`);
+        }
       }
-    }
-    
-    // Ensure we return at least one command if valid
-    if (commands.length === 0 && parts.length > 0) {
-      console.warn(`Invalid command: ${input}`);
     }
     
     return commands;

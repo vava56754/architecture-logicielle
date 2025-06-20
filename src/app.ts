@@ -116,8 +116,26 @@ class RoverMissionApp {
     // Use recursive function instead of while loop to avoid blocking
     const processNextCommand = async () => {
       try {
-        const command = await this.commandInput!.captureUserInput();
-        await this.sendCommand(command);
+        // Get the input from the form
+        const placeholderCommand = await this.commandInput!.captureUserInput();
+        // Get the raw input string from parameters
+        const inputStr = placeholderCommand.parameters?.rawInput?.toString() || '';
+        
+        if (this.roverReturn) {
+          this.roverReturn.handleRoverResponse(`Received command sequence: ${inputStr}`);
+        }
+        
+        // Parse all commands from the input string
+        const commands = this.commandInput!.parseCommands(inputStr);
+        
+        if (commands.length > 0) {
+          // Execute the sequence of commands
+          await this.executeCommandSequence(commands);
+        } else {
+          if (this.roverReturn) {
+            this.roverReturn.handleRoverResponse(`No valid commands found in: ${inputStr}`);
+          }
+        }
       } catch (error) {
         console.error('Error processing command:', error);
       }
@@ -128,6 +146,27 @@ class RoverMissionApp {
     
     // Start the command processing loop
     processNextCommand();
+  }
+  
+  private async executeCommandSequence(commands: Command[]): Promise<void> {
+    if (this.roverReturn && commands.length > 1) {
+      this.roverReturn.handleRoverResponse(`Executing ${commands.length} commands sequentially`);
+    }
+    
+    // Execute each command in sequence with a delay between them
+    for (let i = 0; i < commands.length; i++) {
+      const command = commands[i];
+      if (this.roverReturn) {
+        this.roverReturn.handleRoverResponse(`Executing command ${i+1}/${commands.length}: ${command.type}`);
+      }
+      
+      await this.sendCommand(command);
+      
+      // Add a small delay between commands to see the sequence
+      if (i < commands.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
   }
   
   private async sendCommand(command: Command): Promise<void> {
