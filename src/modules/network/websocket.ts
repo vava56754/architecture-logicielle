@@ -88,4 +88,25 @@ export class WebSocketClient implements IWebSocket {
   isConnectedToServer(): boolean {
     return this.isConnected && this.socket?.readyState === WebSocket.OPEN;
   }
+
+  /**
+   * Connecte au WebSocket et notifie le RoverReturn du status
+   */
+  async connectToRover(url: string, roverReturn: any, roverControl: any): Promise<boolean> {
+    if (!roverReturn) return false;
+    roverReturn.handleRoverResponse('Attempting to connect to rover...');
+    const connected = await this.connect(url);
+    if (connected) {
+      roverReturn.handleRoverResponse('✅ Connected to rover WebSocket server');
+      // Envoi du status initial
+      const initialStatus = roverControl.getStatus();
+      roverReturn.updateRoverStatus(initialStatus);
+    } else {
+      roverReturn.handleRoverResponse({
+        error: true,
+        message: '❌ Failed to connect to rover. Make sure WebSocket server is running on port 8081.'
+      });
+    }
+    return connected;
+  }
 }

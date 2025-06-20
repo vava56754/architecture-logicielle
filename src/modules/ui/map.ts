@@ -208,11 +208,6 @@ export class MapDisplay implements IMap {
     return modA === modB;
   }
   
-  private getObstacleColor(type: string): string {
-    // All obstacles are the same color now
-    return '#8B4513';
-  }
-  
   private getOrientationArrow(): string {
     switch (this.currentOrientation.orientation) {
       case 'N': return '↑';
@@ -221,5 +216,15 @@ export class MapDisplay implements IMap {
       case 'W': return '←';
       default: return '•';
     }
+  }
+  
+  /**
+   * Met à jour la carte à partir des modules roverControl et obstacles
+   */
+  updateFromRover(roverControl: any, obstacles: any): void {
+    const position = roverControl.getPosition();
+    const orientation = roverControl.getOrientation();
+    const discoveredObstacles = obstacles.scanObstacles();
+    this.updateMap(position, discoveredObstacles, orientation);
   }
 }

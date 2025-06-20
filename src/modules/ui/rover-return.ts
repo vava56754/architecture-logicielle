@@ -132,5 +132,23 @@ export class RoverReturn implements IRoverReturn {
     
     this.outputElement.scrollTop = this.outputElement.scrollHeight;
   }
+  
+  /**
+   * Affiche un message de status avec le status du rover et une alerte optionnelle
+   */
+  sendStatusUpdateWithMessage(status: RoverStatus, message: string, isAlert: boolean = false): void {
+    setTimeout(() => {
+      try {
+        this.handleRoverResponse({
+          id: (window as any).uuidv4 ? (window as any).uuidv4() : undefined,
+          status: status,
+          message: message,
+          alert: isAlert
+        });
+      } catch (error) {
+        console.error("Error generating status update:", error);
+      }
+    }, 300);
+  }
 }
 

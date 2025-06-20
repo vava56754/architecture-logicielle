@@ -247,4 +247,51 @@ export class RoverControl implements IRoverControl {
       this.obstaclesService.detectNearbyObstacles(radius) : 
       [];
   }
+
+  /**
+   * Recharge la batterie via panneau solaire, avec notifications via RoverReturn
+   */
+  async handleSolarCharging(roverReturn: any): Promise<any> {
+    if (!roverReturn) return { message: 'Solar charging initiated.' };
+    const currentBattery = this.getBattery();
+    if (currentBattery >= 100) {
+      roverReturn.handleRoverResponse('🔋 Battery is already fully charged!');
+      return { message: 'Battery already full.' };
+    }
+    roverReturn.handleRoverResponse('🔆 Deploying solar panel...');
+    if (currentBattery < 50) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      this.setBattery(50);
+      roverReturn.handleRoverResponse('🔋 Charging... 50% complete');
+    }
+    if (currentBattery < 100) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      this.chargeBattery();
+      roverReturn.handleRoverResponse('🔋 Charging... 100% complete');
+    }
+    await new Promise(resolve => setTimeout(resolve, 500));
+    roverReturn.handleRoverResponse('🔆 Solar panel retracted. Battery fully charged!');
+    return { message: 'Solar charging complete.' };
+  }
+
+  /**
+   * Retourne un objet RoverStatus à partir de l'état courant du rover
+   */
+  getStatus(extra?: Partial<import('./rover-types.interface').RoverStatus>): import('./rover-types.interface').RoverStatus {
+    return {
+      position: this.getPosition(),
+      orientation: this.getOrientation(),
+      battery: this.getBattery(),
+      health: this.getBattery() > 20 ? 'healthy' : 'critical',
+      mission: 'Exploration',
+      lastUpdate: new Date(),
+      speed: 0,
+      sensors: {
+        camera: true,
+        lidar: true,
+        thermometer: true
+      },
+      ...extra
+    };
+  }
 }
