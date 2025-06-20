@@ -100,13 +100,55 @@ class RoverMissionApp {
   private async start(): Promise<void> {
     console.log("Starting rover mission application...");
     
-    // Simulate WebSocket connection
-    this.simulateWebSocketConnection();
+    // Try to connect to real WebSocket server
+    await this.connectToWebSocket();
     
     // Start command input loop
     this.startCommandLoop();
   }
-  
+
+  private async connectToWebSocket(): Promise<void> {
+    if (!this.roverReturn) return;
+
+    this.roverReturn.handleRoverResponse('Attempting to connect to rover...');
+    
+    const connected = await this.websocket.connect('ws://localhost:8081');
+    
+    if (connected) {
+      this.roverReturn.handleRoverResponse('✅ Connected to rover WebSocket server');
+      
+      // Remove the response handler that was causing messages for each command
+      // this.messaging.onResponse((response) => {
+      //   if (this.roverReturn) {
+      //     this.roverReturn.handleRoverResponse(`Rover confirmed: ${response.originalCommand} command executed`);
+      //   }
+      // });
+      
+      // Send initial status
+      const initialStatus: RoverStatus = {
+        position: { x: 0, y: 0, z: 0 },
+        orientation: { orientation: 'N' },
+        battery: this.roverControl.getBattery(),
+        health: 'healthy',
+        mission: 'Exploration',
+        lastUpdate: new Date(),
+        speed: 0,
+        sensors: {
+          camera: true,
+          lidar: true,
+          thermometer: true
+        }
+      };
+      
+      this.roverReturn.updateRoverStatus(initialStatus);
+    } else {
+      this.roverReturn.handleRoverResponse({
+        error: true,
+        message: '❌ Failed to connect to rover. Make sure WebSocket server is running on port 8081.'
+      });
+    }
+  }
+
   private startCommandLoop(): void {
     if (!this.commandInput) {
       console.error("Command input not initialized");
@@ -122,7 +164,8 @@ class RoverMissionApp {
         const inputStr = placeholderCommand.parameters?.rawInput?.toString() || '';
         
         if (this.roverReturn) {
-          this.roverReturn.handleRoverResponse(`Received command sequence: ${inputStr}`);
+          // Add some spacing before new command sequence
+          this.roverReturn.handleRoverResponse(`\n📡 Received command sequence: ${inputStr}`);
         }
         
         // Parse all commands from the input string
@@ -133,7 +176,7 @@ class RoverMissionApp {
           await this.executeCommandSequence(commands);
         } else {
           if (this.roverReturn) {
-            this.roverReturn.handleRoverResponse(`No valid commands found in: ${inputStr}`);
+            this.roverReturn.handleRoverResponse(`❌ No valid commands found in: ${inputStr}`);
           }
         }
       } catch (error) {
@@ -155,6 +198,7 @@ class RoverMissionApp {
     
     let obstacleEncountered = false;
     let batteryEmpty = false;
+    let completedCommands = 0;
     
     // Execute each command in sequence with a delay between them
     for (let i = 0; i < commands.length; i++) {
@@ -165,22 +209,16 @@ class RoverMissionApp {
       // Check if battery is empty
       if (result && result.batteryEmpty) {
         batteryEmpty = true;
-        if (this.roverReturn) {
-          this.roverReturn.handleRoverResponse({
-            error: true,
-            message: `🔋 BATTERY EMPTY! Command sequence aborted at command ${i+1}/${commands.length}. Use 'R' to recharge.`,
-            alertLevel: 'warning'
-          });
-        }
         break;
       }
       
       // Check if an obstacle was detected
       if (result && result.obstacleDetected) {
         obstacleEncountered = true;
-        this.handleObstacleDetected(command, result);
         break;
       }
+      
+      completedCommands++;
       
       // Add a small delay between commands to see the sequence
       if (i < commands.length - 1) {
@@ -188,14 +226,55 @@ class RoverMissionApp {
       }
     }
     
-    // Send final message only if no obstacle or battery issue was encountered
-    if (!obstacleEncountered && !batteryEmpty && this.roverReturn) {
-      this.simulateRoverResponse(commands[commands.length - 1], {
-        message: `All ${commands.length} commands executed successfully.`
-      });
+    // Send final status update with message based on what happened
+    if (batteryEmpty && this.roverReturn) {
+      this.sendStatusUpdateWithMessage(`🔋 BATTERY EMPTY! Completed ${completedCommands}/${commands.length} commands. Use 'R' to recharge.`, true);
+    } else if (obstacleEncountered && this.roverReturn) {
+      this.sendStatusUpdateWithMessage(`⚠️ OBSTACLE DETECTED! Completed ${completedCommands}/${commands.length} commands before encountering obstacle.`, true);
+    } else if (this.roverReturn) {
+      // All commands completed successfully
+      this.sendStatusUpdateWithMessage(`✅ All ${commands.length} commands executed successfully.`);
     }
   }
-  
+
+  private sendStatusUpdateWithMessage(message: string, isAlert: boolean = false): void {
+    if (!this.roverReturn) return;
+    
+    // Store reference to this.roverReturn to use inside the callback
+    const roverReturn = this.roverReturn;
+    
+    setTimeout(() => {
+      try {
+        const status: RoverStatus = {
+          position: this.roverControl.getPosition(),
+          orientation: this.roverControl.getOrientation(),
+          battery: this.roverControl.getBattery(),
+          health: this.roverControl.getBattery() > 20 ? (isAlert ? 'warning' : 'healthy') : 'critical',
+          mission: isAlert ? 'Exploration - Issue Detected' : 'Exploration',
+          obstacleDetected: isAlert && message.includes('OBSTACLE'),
+          lastUpdate: new Date(),
+          speed: 0,
+          sensors: {
+            camera: true,
+            lidar: true,
+            thermometer: true
+          }
+        };
+        
+        const response = {
+          id: uuidv4(),
+          status: status,
+          message: message,
+          alert: isAlert
+        };
+        
+        roverReturn.handleRoverResponse(response);
+      } catch (error) {
+        console.error("Error generating status update:", error);
+      }
+    }, 300);
+  }
+
   private async sendCommandSilently(command: Command): Promise<any> {
     console.log(`Processing command: ${command.type}`);
     
@@ -203,7 +282,7 @@ class RoverMissionApp {
     const result = this.handleCommandLocallySilent(command);
     
     try {
-      // Send command to rover via messaging
+      // Send command to rover via messaging but don't show response
       await this.messaging.sendCommandToRover(command);
     } catch (error) {
       console.error("Error sending command to rover:", error);
@@ -212,7 +291,7 @@ class RoverMissionApp {
     return result;
   }
   
-  private async handleCommandLocallySilent(command: Command): Promise<any> {
+  private handleCommandLocallySilent(command: Command): any {
     let result: any = null;
     
     try {
@@ -230,23 +309,24 @@ class RoverMissionApp {
           result = this.roverControl.turnRight();
           break;
         case 'R':
-          result = await this.handleSolarCharging();
+          result = this.handleSolarCharging();
           break;
         case 'scan':
-          // When scanning, mark all obstacles as discovered
           this.obstacles.discoverAllObstacles();
           result = {
             obstacles: this.obstacles.scanObstacles(),
             message: 'Scan complete. Obstacles detected and mapped.'
           };
           this.updateMap();
-          this.simulateRoverResponse(command, result);
+          // Scan shows status update with message
+          this.sendStatusUpdateWithMessage('🔍 Scan complete. Obstacles detected and mapped.');
           break;
         case 'return':
           result = {
             message: 'Return command received. Planning route back to base.'
           };
-          this.simulateRoverResponse(command, result);
+          // Return shows status update with message
+          this.sendStatusUpdateWithMessage('🏠 Return command received. Planning route back to base.');
           break;
         default:
           console.warn(`Unknown command type: ${command.type}`);
@@ -298,43 +378,6 @@ class RoverMissionApp {
     return { message: 'Solar charging complete.' };
   }
   
-  private handleObstacleDetected(command: Command, result: any): void {
-    if (!this.roverReturn) return;
-    
-    setTimeout(() => {
-      try {
-        const status: RoverStatus = {
-          position: this.roverControl.getPosition(),
-          orientation: this.roverControl.getOrientation(),
-          battery: this.roverControl.getBattery(), // Use real battery level
-          health: this.roverControl.getBattery() > 20 ? 'warning' : 'critical',
-          mission: 'Exploration - Movement Blocked',
-          obstacleDetected: true,
-          lastUpdate: new Date(),
-          speed: 0,
-          sensors: {
-            camera: true,
-            lidar: true,
-            thermometer: true
-          }
-        };
-        
-        const response = {
-          id: uuidv4(),
-          status: status,
-          message: `⚠️ OBSTACLE DETECTED! Command sequence aborted. An obstacle is blocking the path.`,
-          alert: true
-        };
-        
-        if (this.roverReturn) {
-          this.roverReturn.handleRoverResponse(response);
-        }
-      } catch (error) {
-        console.error("Error generating obstacle response:", error);
-      }
-    }, 300);
-  }
-  
   private updateMap(): void {
     if (!this.mapDisplay) return;
     
@@ -348,72 +391,42 @@ class RoverMissionApp {
   }
   
   private simulateRoverResponse(command: Command, result: any): void {
-    if (!this.roverReturn) return;
-    
-    setTimeout(() => {
-      try {
-        // Generate status update
-        const status: RoverStatus = {
-          position: this.roverControl.getPosition(),
-          orientation: this.roverControl.getOrientation(),
-          battery: this.roverControl.getBattery(),
-          health: this.roverControl.getBattery() > 20 ? 'healthy' : 'warning',
-          mission: 'Exploration',
-          lastUpdate: new Date(),
-          speed: 0.5,
-          sensors: {
-            camera: true,
-            lidar: true,
-            thermometer: true
-          }
-        };
-        
-        // Create response
-        const response = {
-          id: uuidv4(),
-          status: status,
-          message: result.message || `Command '${command.type}' executed successfully.`,
-          result: result
-        };
-        
-        // Send response to UI
-        if (this.roverReturn) {
-          this.roverReturn.handleRoverResponse(response);
-        }
-      } catch (error) {
-        console.error("Error generating rover response:", error);
-      }
-    }, 500);
-  }
-  
-  private simulateWebSocketConnection(): void {
-    if (!this.roverReturn) return;
-    
-    // Simulate a successful connection
-    setTimeout(() => {
-      if (this.roverReturn) {
-        this.roverReturn.handleRoverResponse('Connection established with rover.');
-      }
+    // Only call this for special commands like scan and return, not for movement
+    if (command.type !== 'Z' && command.type !== 'S' && command.type !== 'Q' && command.type !== 'D') {
+      if (!this.roverReturn) return;
       
-      // Send initial status
-      const initialStatus: RoverStatus = {
-        position: { x: 0, y: 0, z: 0 },
-        orientation: { orientation: 'N' },
-        battery: this.roverControl.getBattery(),
-        health: 'healthy',
-        mission: 'Exploration',
-        lastUpdate: new Date(),
-        speed: 0,
-        sensors: {
-          camera: true,
-          lidar: true,
-          thermometer: true
+      setTimeout(() => {
+        try {
+          if (!this.roverReturn) return; // Add null check here
+          
+          const status: RoverStatus = {
+            position: this.roverControl.getPosition(),
+            orientation: this.roverControl.getOrientation(),
+            battery: this.roverControl.getBattery(),
+            health: this.roverControl.getBattery() > 20 ? 'healthy' : 'warning',
+            mission: 'Exploration',
+            lastUpdate: new Date(),
+            speed: 0.5,
+            sensors: {
+              camera: true,
+              lidar: true,
+              thermometer: true
+            }
+          };
+          
+          const response = {
+            id: uuidv4(),
+            status: status,
+            message: result.message || `Command '${command.type}' executed successfully.`,
+            result: result
+          };
+          
+          this.roverReturn.handleRoverResponse(response);
+        } catch (error) {
+          console.error("Error generating rover response:", error);
         }
-      };
-      if (this.roverReturn) {
-        this.roverReturn.updateRoverStatus(initialStatus);
-      }
-    }, 1000);
+      }, 500);
+    }
   }
 }
 
@@ -423,4 +436,3 @@ const app = new RoverMissionApp();
 
 // Add to window for debugging purposes
 (window as any).roverApp = app;
-

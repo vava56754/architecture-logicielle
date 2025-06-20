@@ -115,6 +115,21 @@ export class RoverReturn implements IRoverReturn {
     entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
     
     this.outputElement.appendChild(entry);
+    
+    // Add separator line after command sequences for better readability
+    if (message.includes('All') && message.includes('commands executed successfully') ||
+        message.includes('OBSTACLE DETECTED') ||
+        message.includes('BATTERY EMPTY') ||
+        message.includes('Solar panel retracted')) {
+      const separator = document.createElement('div');
+      separator.style.cssText = `
+        border-bottom: 1px solid #444;
+        margin: 10px 0;
+        height: 1px;
+      `;
+      this.outputElement.appendChild(separator);
+    }
+    
     this.outputElement.scrollTop = this.outputElement.scrollHeight;
   }
 }

@@ -4,23 +4,22 @@ import { IWebSocket } from '../network/websocket.interface';
 
 export class Messaging implements IMessaging {
   private commandQueue: Command[] = [];
+  private responseCallback: ((response: any) => void) | null = null;
   
   constructor(private socket: IWebSocket) {
-    this.simulateConnection();
-    
     this.socket.onMessage((data) => {
-      if (data && data.type === 'command') {
+      console.log('Messaging received:', data);
+      
+      if (data.type === 'response' && this.responseCallback) {
+        this.responseCallback(data);
+      } else if (data.type === 'command') {
         this.commandQueue.push(data as Command);
       }
     });
   }
 
-  private simulateConnection(): void {
-    // Simulate a successful connection for development
-    console.log("Simulating WebSocket connection for messaging");
-  }
-
   async sendCommandToRover(command: Command): Promise<boolean> {
+    console.log('Sending command to rover:', command);
     return this.socket.send(command);
   }
 
@@ -36,5 +35,9 @@ export class Messaging implements IMessaging {
       
       checkQueue();
     });
+  }
+
+  onResponse(callback: (response: any) => void): void {
+    this.responseCallback = callback;
   }
 }
