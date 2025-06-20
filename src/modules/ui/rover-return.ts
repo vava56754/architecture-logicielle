@@ -74,10 +74,8 @@ export class RoverReturn implements IRoverReturn {
       Battery: ${status.battery}%
       Health: ${status.health}
       Mission: ${status.mission}
-      Speed: ${status.speed} m/s
       Sensors: Camera ${status.sensors.camera ? 'ON' : 'OFF'}, 
-               LIDAR ${status.sensors.lidar ? 'ON' : 'OFF'}, 
-               Thermometer ${status.sensors.thermometer ? 'ON' : 'OFF'}
+               LIDAR ${status.sensors.lidar ? 'ON' : 'OFF'}
     `;
     
     this.updateOutputDisplay(statusMsg);
@@ -120,3 +118,4 @@ export class RoverReturn implements IRoverReturn {
     this.outputElement.scrollTop = this.outputElement.scrollHeight;
   }
 }
+

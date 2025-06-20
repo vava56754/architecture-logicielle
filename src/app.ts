@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { RoverControl } from './modules/rover/rover-control';
 import { Obstacles } from './modules/rover/obstacles';
 import { WebSocketClient } from './modules/network/websocket';
-import { Messaging } from './modules/mission-control/messaging';
+import { Messaging } from './modules/mission-control/Messaging';
 import { MapDisplay } from './modules/ui/map';
 import { CommandInput } from './modules/ui/input';
 import { RoverReturn } from './modules/ui/rover-return';
@@ -153,60 +153,66 @@ class RoverMissionApp {
       this.roverReturn.handleRoverResponse(`Executing ${commands.length} commands sequentially`);
     }
     
+    let obstacleEncountered = false;
+    let batteryEmpty = false;
+    
     // Execute each command in sequence with a delay between them
     for (let i = 0; i < commands.length; i++) {
       const command = commands[i];
-      if (this.roverReturn) {
-        this.roverReturn.handleRoverResponse(`Executing command ${i+1}/${commands.length}: ${command.type}`);
-      }
       
-      const result = await this.sendCommand(command);
+      const result = await this.sendCommandSilently(command);
       
-      // Check if an obstacle was detected
-      if (result && result.obstacleDetected) {
+      // Check if battery is empty
+      if (result && result.batteryEmpty) {
+        batteryEmpty = true;
         if (this.roverReturn) {
           this.roverReturn.handleRoverResponse({
             error: true,
-            message: `⚠️ OBSTACLE DETECTED! Command sequence aborted at command ${i+1}/${commands.length}`,
+            message: `🔋 BATTERY EMPTY! Command sequence aborted at command ${i+1}/${commands.length}. Use 'R' to recharge.`,
             alertLevel: 'warning'
           });
         }
-        
-        // Stop executing further commands
+        break;
+      }
+      
+      // Check if an obstacle was detected
+      if (result && result.obstacleDetected) {
+        obstacleEncountered = true;
+        this.handleObstacleDetected(command, result);
         break;
       }
       
       // Add a small delay between commands to see the sequence
       if (i < commands.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
+    }
+    
+    // Send final message only if no obstacle or battery issue was encountered
+    if (!obstacleEncountered && !batteryEmpty && this.roverReturn) {
+      this.simulateRoverResponse(commands[commands.length - 1], {
+        message: `All ${commands.length} commands executed successfully.`
+      });
     }
   }
   
-  private async sendCommand(command: Command): Promise<any> {
+  private async sendCommandSilently(command: Command): Promise<any> {
     console.log(`Processing command: ${command.type}`);
     
-    // Handle command locally (simulation)
-    const result = this.handleCommandLocally(command);
+    // Handle command locally (simulation) without sending response messages
+    const result = this.handleCommandLocallySilent(command);
     
     try {
       // Send command to rover via messaging
       await this.messaging.sendCommandToRover(command);
     } catch (error) {
       console.error("Error sending command to rover:", error);
-      if (this.roverReturn) {
-        this.roverReturn.handleRoverResponse({
-          error: true,
-          message: `Failed to send command: ${error instanceof Error ? error.message : 'Unknown error'}`
-        });
-      }
     }
     
-    // Return the result for checking obstacle detection
     return result;
   }
   
-  private handleCommandLocally(command: Command): any {
+  private async handleCommandLocallySilent(command: Command): Promise<any> {
     let result: any = null;
     
     try {
@@ -223,48 +229,71 @@ class RoverMissionApp {
         case 'D':
           result = this.roverControl.turnRight();
           break;
+        case 'R':
+          result = await this.handleSolarCharging();
+          break;
         case 'scan':
-          // When scanning, obstacles are discovered and identified
           result = {
             obstacles: this.obstacles.scanObstacles(),
             message: 'Scan complete. Obstacles detected and mapped.'
           };
-          // Update map after scan to show discovered obstacles
           this.updateMap();
+          this.simulateRoverResponse(command, result);
           break;
         case 'return':
-          // Simplified implementation - just report receiving the command
           result = {
             message: 'Return command received. Planning route back to base.'
           };
+          this.simulateRoverResponse(command, result);
           break;
         default:
           console.warn(`Unknown command type: ${command.type}`);
           return null;
       }
       
-      // Update map with new position
+      // Update map with new position (silently)
       this.updateMap();
-      
-      // Generate rover response if there was no obstacle
-      if (!result.obstacleDetected) {
-        this.simulateRoverResponse(command, result);
-      } else {
-        // Handle obstacle detection specially
-        this.handleObstacleDetected(command, result);
-      }
       
       return result;
     } catch (error) {
       console.error(`Error executing command ${command.type}:`, error);
-      if (this.roverReturn) {
-        this.roverReturn.handleRoverResponse({
-          error: true,
-          message: `Command execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-        });
-      }
       return null;
     }
+  }
+  
+  private async handleSolarCharging(): Promise<any> {
+    if (!this.roverReturn) return { message: 'Solar charging initiated.' };
+
+    const currentBattery = this.roverControl.getBattery();
+    
+    // Check if battery is already full
+    if (currentBattery >= 100) {
+      this.roverReturn.handleRoverResponse('🔋 Battery is already fully charged!');
+      return { message: 'Battery already full.' };
+    }
+
+    // Deploy solar panel
+    this.roverReturn.handleRoverResponse('🔆 Deploying solar panel...');
+    
+    // Check if we need to show 50% message
+    if (currentBattery < 50) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      this.roverControl.setBattery(50); // Set battery to 50%
+      this.roverReturn.handleRoverResponse('🔋 Charging... 50% complete');
+    }
+    
+    // Always charge to 100% if not already there
+    if (currentBattery < 100) {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      this.roverControl.chargeBattery(); // Charge to 100%
+      this.roverReturn.handleRoverResponse('🔋 Charging... 100% complete');
+    }
+    
+    // Completion message
+    await new Promise(resolve => setTimeout(resolve, 500));
+    this.roverReturn.handleRoverResponse('🔆 Solar panel retracted. Battery fully charged!');
+    
+    return { message: 'Solar charging complete.' };
   }
   
   private handleObstacleDetected(command: Command, result: any): void {
@@ -275,8 +304,8 @@ class RoverMissionApp {
         const status: RoverStatus = {
           position: this.roverControl.getPosition(),
           orientation: this.roverControl.getOrientation(),
-          battery: 85,
-          health: 'warning',
+          battery: this.roverControl.getBattery(), // Use real battery level
+          health: this.roverControl.getBattery() > 20 ? 'warning' : 'critical',
           mission: 'Exploration - Movement Blocked',
           obstacleDetected: true,
           lastUpdate: new Date(),
@@ -291,7 +320,7 @@ class RoverMissionApp {
         const response = {
           id: uuidv4(),
           status: status,
-          message: `⚠️ MOVEMENT BLOCKED! Cannot move ${command.type === 'Z' ? 'forward' : 'backward'}. An obstacle is blocking the path.`,
+          message: `⚠️ OBSTACLE DETECTED! Command sequence aborted. An obstacle is blocking the path.`,
           alert: true
         };
         
@@ -325,8 +354,8 @@ class RoverMissionApp {
         const status: RoverStatus = {
           position: this.roverControl.getPosition(),
           orientation: this.roverControl.getOrientation(),
-          battery: 85, // Simulated battery level
-          health: 'healthy',
+          battery: this.roverControl.getBattery(),
+          health: this.roverControl.getBattery() > 20 ? 'healthy' : 'warning',
           mission: 'Exploration',
           lastUpdate: new Date(),
           speed: 0.5,
@@ -341,7 +370,7 @@ class RoverMissionApp {
         const response = {
           id: uuidv4(),
           status: status,
-          message: `Command '${command.type}' executed successfully.`,
+          message: result.message || `Command '${command.type}' executed successfully.`,
           result: result
         };
         
@@ -352,7 +381,7 @@ class RoverMissionApp {
       } catch (error) {
         console.error("Error generating rover response:", error);
       }
-    }, 500); // Simulate response delay
+    }, 500);
   }
   
   private simulateWebSocketConnection(): void {
@@ -368,7 +397,7 @@ class RoverMissionApp {
       const initialStatus: RoverStatus = {
         position: { x: 0, y: 0, z: 0 },
         orientation: { orientation: 'N' },
-        battery: 100,
+        battery: this.roverControl.getBattery(),
         health: 'healthy',
         mission: 'Exploration',
         lastUpdate: new Date(),
@@ -392,3 +421,4 @@ const app = new RoverMissionApp();
 
 // Add to window for debugging purposes
 (window as any).roverApp = app;
+

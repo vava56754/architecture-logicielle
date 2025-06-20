@@ -5,8 +5,9 @@ import { IObstacles } from './obstacles.interface';
 export class RoverControl implements IRoverControl {
   private position: Position = { x: 0, y: 0, z: 0 };
   private orientation: Orientation = { orientation: 'N' };
-  private mapSize = { width: 20, height: 20 }; // Define map boundaries for toroidal wrapping
+  private mapSize = { width: 20, height: 20 };
   private obstaclesService: IObstacles | null = null;
+  private battery: number = 100; // Add battery level
 
   constructor(obstaclesService?: IObstacles) {
     if (obstaclesService) {
@@ -32,7 +33,37 @@ export class RoverControl implements IRoverControl {
     this.orientation = { ...orientation };
   }
 
+  getBattery(): number {
+    return this.battery;
+  }
+
+  setBattery(level: number): void {
+    this.battery = Math.max(0, Math.min(100, level));
+  }
+
+  chargeBattery(): void {
+    this.battery = 100;
+  }
+
+  private consumeBattery(amount: number): boolean {
+    if (this.battery <= 0) {
+      return false; // Cannot move, battery is empty
+    }
+    this.battery = Math.max(0, this.battery - amount);
+    return true;
+  }
+
   moveForward(): RoverState {
+    // Check battery first
+    if (!this.consumeBattery(2)) {
+      return {
+        position: this.getPosition(),
+        orientation: this.getOrientation(),
+        obstacleDetected: false,
+        batteryEmpty: true
+      };
+    }
+
     const newPosition = { ...this.position };
     
     switch (this.orientation.orientation) {
@@ -52,7 +83,8 @@ export class RoverControl implements IRoverControl {
     
     // Check for obstacles before moving
     if (this.obstaclesService && !this.obstaclesService.isPathClear(newPosition)) {
-      // Obstacle detected - don't move and return obstacle status
+      // Obstacle detected - restore battery since we didn't actually move
+      this.battery = Math.min(100, this.battery + 2);
       return {
         position: this.getPosition(),
         orientation: this.getOrientation(),
@@ -77,6 +109,16 @@ export class RoverControl implements IRoverControl {
   }
 
   moveBackward(): RoverState {
+    // Check battery first
+    if (!this.consumeBattery(2)) {
+      return {
+        position: this.getPosition(),
+        orientation: this.getOrientation(),
+        obstacleDetected: false,
+        batteryEmpty: true
+      };
+    }
+
     const newPosition = { ...this.position };
     
     switch (this.orientation.orientation) {
@@ -96,7 +138,8 @@ export class RoverControl implements IRoverControl {
     
     // Check for obstacles before moving
     if (this.obstaclesService && !this.obstaclesService.isPathClear(newPosition)) {
-      // Obstacle detected - don't move and return obstacle status
+      // Obstacle detected - restore battery since we didn't actually move
+      this.battery = Math.min(100, this.battery + 2);
       return {
         position: this.getPosition(),
         orientation: this.getOrientation(),
@@ -121,6 +164,16 @@ export class RoverControl implements IRoverControl {
   }
 
   turnLeft(): RoverState {
+    // Turning consumes less battery
+    if (!this.consumeBattery(1)) {
+      return {
+        position: this.getPosition(),
+        orientation: this.getOrientation(),
+        obstacleDetected: false,
+        batteryEmpty: true
+      };
+    }
+
     const orientationMap: Record<string, 'N' | 'E' | 'S' | 'W'> = {
       'N': 'W',
       'W': 'S',
@@ -138,6 +191,16 @@ export class RoverControl implements IRoverControl {
   }
 
   turnRight(): RoverState {
+    // Turning consumes less battery
+    if (!this.consumeBattery(1)) {
+      return {
+        position: this.getPosition(),
+        orientation: this.getOrientation(),
+        obstacleDetected: false,
+        batteryEmpty: true
+      };
+    }
+
     const orientationMap: Record<string, 'N' | 'E' | 'S' | 'W'> = {
       'N': 'E',
       'E': 'S',

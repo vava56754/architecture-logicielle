@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 export class CommandInput implements IInput {
   private inputElement: HTMLInputElement;
   private submitButton: HTMLButtonElement;
-  private validCommands = ['Z', 'S', 'Q', 'D', 'scan', 'return'];
+  private validCommands = ['Z', 'S', 'Q', 'D', 'R', 'scan', 'return'];
   private commandResolve: ((value: Command) => void) | null = null;
   
   constructor(containerId: string) {
@@ -28,7 +28,7 @@ export class CommandInput implements IInput {
     // Create input element
     this.inputElement = document.createElement('input');
     this.inputElement.type = 'text';
-    this.inputElement.placeholder = 'Enter commands (Z, S, Q, D, scan, return)';
+    this.inputElement.placeholder = 'Enter commands (Z, S, Q, D, R, scan, return)';
     this.inputElement.style.cssText = `
       flex: 1;
       padding: 8px;
@@ -97,10 +97,10 @@ export class CommandInput implements IInput {
       const char = inputUpper[i];
       
       // Handle single-character commands
-      if (['Z', 'S', 'Q', 'D'].includes(char)) {
+      if (['Z', 'S', 'Q', 'D', 'R'].includes(char)) {
         commands.push({
           id: uuidv4(),
-          type: char as 'Z' | 'S' | 'Q' | 'D', // Explicitly cast to valid command type
+          type: char as 'Z' | 'S' | 'Q' | 'D' | 'R',
           timestamp: new Date(),
         });
       } else if (char === ' ') {
