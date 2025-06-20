@@ -1,10 +1,18 @@
 import { IRoverControl } from './rover-control.interface';
 import { Position, RoverState, Orientation } from './rover-types.interface';
+import { IObstacles } from './obstacles.interface';
 
 export class RoverControl implements IRoverControl {
   private position: Position = { x: 0, y: 0, z: 0 };
   private orientation: Orientation = { orientation: 'N' };
   private mapSize = { width: 20, height: 20 }; // Define map boundaries for toroidal wrapping
+  private obstaclesService: IObstacles | null = null;
+
+  constructor(obstaclesService?: IObstacles) {
+    if (obstaclesService) {
+      this.obstaclesService = obstaclesService;
+    }
+  }
 
   updatePosition(position: Position): void {
     this.position = { ...position };
@@ -42,8 +50,23 @@ export class RoverControl implements IRoverControl {
         break;
     }
     
+    // Check for obstacles before moving
+    if (this.obstaclesService && !this.obstaclesService.isPathClear(newPosition)) {
+      // Obstacle detected - don't move and return obstacle status
+      return {
+        position: this.getPosition(),
+        orientation: this.getOrientation(),
+        obstacleDetected: true,
+        lastCommand: {
+          id: 'forward-blocked',
+          type: 'Z',
+          timestamp: new Date()
+        }
+      };
+    }
+    
+    // No obstacle, proceed with movement
     this.position = newPosition;
-    // Apply toroidal wrapping for seamless map edges
     this.applyToroidalWrapping();
     
     return {
@@ -71,8 +94,23 @@ export class RoverControl implements IRoverControl {
         break;
     }
     
+    // Check for obstacles before moving
+    if (this.obstaclesService && !this.obstaclesService.isPathClear(newPosition)) {
+      // Obstacle detected - don't move and return obstacle status
+      return {
+        position: this.getPosition(),
+        orientation: this.getOrientation(),
+        obstacleDetected: true,
+        lastCommand: {
+          id: 'backward-blocked',
+          type: 'S',
+          timestamp: new Date()
+        }
+      };
+    }
+    
+    // No obstacle, proceed with movement
     this.position = newPosition;
-    // Apply toroidal wrapping for seamless map edges
     this.applyToroidalWrapping();
     
     return {
@@ -131,5 +169,19 @@ export class RoverControl implements IRoverControl {
     } else if (this.position.y >= Math.floor(this.mapSize.height / 2)) {
       this.position.y = -Math.floor(this.mapSize.height / 2);
     }
+  }
+
+  // Helper method to check if there's an obstacle at the current position
+  public hasObstacleAtCurrentPosition(): boolean {
+    return this.obstaclesService ? 
+      !this.obstaclesService.isPathClear(this.position) : 
+      false;
+  }
+
+  // Helper method to detect obstacles in the vicinity
+  public detectNearbyObstacles(radius: number = 1): any[] {
+    return this.obstaclesService ? 
+      this.obstaclesService.detectNearbyObstacles(radius) : 
+      [];
   }
 }

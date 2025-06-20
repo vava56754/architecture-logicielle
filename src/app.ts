@@ -22,8 +22,8 @@ class RoverMissionApp {
     console.log("Creating Rover Mission App...");
     
     // Initialize components that don't require DOM elements
-    this.roverControl = new RoverControl();
     this.obstacles = new Obstacles();
+    this.roverControl = new RoverControl(this.obstacles); // Pass obstacles service to rover control
     this.websocket = new WebSocketClient();
     this.messaging = new Messaging(this.websocket);
     
@@ -160,7 +160,21 @@ class RoverMissionApp {
         this.roverReturn.handleRoverResponse(`Executing command ${i+1}/${commands.length}: ${command.type}`);
       }
       
-      await this.sendCommand(command);
+      const result = await this.sendCommand(command);
+      
+      // Check if an obstacle was detected
+      if (result && result.obstacleDetected) {
+        if (this.roverReturn) {
+          this.roverReturn.handleRoverResponse({
+            error: true,
+            message: `⚠️ OBSTACLE DETECTED! Command sequence aborted at command ${i+1}/${commands.length}`,
+            alertLevel: 'warning'
+          });
+        }
+        
+        // Stop executing further commands
+        break;
+      }
       
       // Add a small delay between commands to see the sequence
       if (i < commands.length - 1) {
@@ -169,11 +183,11 @@ class RoverMissionApp {
     }
   }
   
-  private async sendCommand(command: Command): Promise<void> {
+  private async sendCommand(command: Command): Promise<any> {
     console.log(`Processing command: ${command.type}`);
     
     // Handle command locally (simulation)
-    this.handleCommandLocally(command);
+    const result = this.handleCommandLocally(command);
     
     try {
       // Send command to rover via messaging
@@ -181,16 +195,18 @@ class RoverMissionApp {
     } catch (error) {
       console.error("Error sending command to rover:", error);
       if (this.roverReturn) {
-        const errorMessage = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Unknown error';
         this.roverReturn.handleRoverResponse({
           error: true,
-          message: `Failed to send command: ${errorMessage}`
+          message: `Failed to send command: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
       }
     }
+    
+    // Return the result for checking obstacle detection
+    return result;
   }
   
-  private handleCommandLocally(command: Command): void {
+  private handleCommandLocally(command: Command): any {
     let result: any = null;
     
     try {
@@ -208,10 +224,13 @@ class RoverMissionApp {
           result = this.roverControl.turnRight();
           break;
         case 'scan':
+          // When scanning, obstacles are discovered and identified
           result = {
             obstacles: this.obstacles.scanObstacles(),
             message: 'Scan complete. Obstacles detected and mapped.'
           };
+          // Update map after scan to show discovered obstacles
+          this.updateMap();
           break;
         case 'return':
           // Simplified implementation - just report receiving the command
@@ -221,38 +240,80 @@ class RoverMissionApp {
           break;
         default:
           console.warn(`Unknown command type: ${command.type}`);
-          return;
+          return null;
       }
       
       // Update map with new position
       this.updateMap();
       
-      // Generate rover response
-      this.simulateRoverResponse(command, result);
+      // Generate rover response if there was no obstacle
+      if (!result.obstacleDetected) {
+        this.simulateRoverResponse(command, result);
+      } else {
+        // Handle obstacle detection specially
+        this.handleObstacleDetected(command, result);
+      }
+      
+      return result;
     } catch (error) {
       console.error(`Error executing command ${command.type}:`, error);
       if (this.roverReturn) {
-        const errorMessage = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : 'Unknown error';
         this.roverReturn.handleRoverResponse({
           error: true,
-          message: `Command execution failed: ${errorMessage}`
+          message: `Command execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`
         });
       }
+      return null;
     }
+  }
+  
+  private handleObstacleDetected(command: Command, result: any): void {
+    if (!this.roverReturn) return;
+    
+    setTimeout(() => {
+      try {
+        const status: RoverStatus = {
+          position: this.roverControl.getPosition(),
+          orientation: this.roverControl.getOrientation(),
+          battery: 85,
+          health: 'warning',
+          mission: 'Exploration - Movement Blocked',
+          obstacleDetected: true,
+          lastUpdate: new Date(),
+          speed: 0,
+          sensors: {
+            camera: true,
+            lidar: true,
+            thermometer: true
+          }
+        };
+        
+        const response = {
+          id: uuidv4(),
+          status: status,
+          message: `⚠️ MOVEMENT BLOCKED! Cannot move ${command.type === 'Z' ? 'forward' : 'backward'}. An obstacle is blocking the path.`,
+          alert: true
+        };
+        
+        if (this.roverReturn) {
+          this.roverReturn.handleRoverResponse(response);
+        }
+      } catch (error) {
+        console.error("Error generating obstacle response:", error);
+      }
+    }, 300);
   }
   
   private updateMap(): void {
     if (!this.mapDisplay) return;
     
-    try {
-      const position = this.roverControl.getPosition();
-      const orientation = this.roverControl.getOrientation();
-      const obstacles = this.obstacles.scanObstacles();
-      
-      this.mapDisplay.updateMap(position, obstacles, orientation);
-    } catch (error) {
-      console.error("Error updating map:", error);
-    }
+    const position = this.roverControl.getPosition();
+    const orientation = this.roverControl.getOrientation();
+    
+    // Only show discovered obstacles on the map
+    const obstacles = this.obstacles.scanObstacles().filter(o => o.discovered);
+    
+    this.mapDisplay.updateMap(position, obstacles, orientation);
   }
   
   private simulateRoverResponse(command: Command, result: any): void {

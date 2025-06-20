@@ -10,7 +10,6 @@ export interface Orientation {
 
 export interface Obstacle {
   position: Position;
-  type: 'rock' | 'crater' | 'debris';
   size: number;
   discovered?: boolean;
 }

@@ -137,7 +137,7 @@ export class MapDisplay implements IMap {
           cell.appendChild(pathMarker);
         }
         
-        // Check if this cell contains an obstacle
+        // Check if this cell contains an obstacle - only show discovered obstacles
         const obstacle = this.currentObstacles.find(o => 
           this.toroidalEquals(o.position.x, actualX, this.mapSize/2) && 
           this.toroidalEquals(o.position.y, actualY, this.mapSize/2) &&
@@ -145,8 +145,8 @@ export class MapDisplay implements IMap {
         );
         
         if (obstacle) {
-          cell.style.backgroundColor = this.getObstacleColor(obstacle.type);
-          cell.title = `${obstacle.type} (size: ${obstacle.size})`;
+          cell.style.backgroundColor = '#8B4513';
+          cell.title = `Obstacle (size: ${obstacle.size})`;
         }
         
         // Check if this is the rover's position
@@ -190,11 +190,11 @@ export class MapDisplay implements IMap {
       font-size: 12px;
     `;
     
+    // Update legend to show only generic obstacles
     legend.innerHTML = `
       <div><span style="color: #00ff00;">◆</span> Rover</div>
       <div><span style="color: rgba(0,255,0,0.3);">●</span> Path</div>
-      <div><span style="color: #8B4513;">■</span> Rock</div>
-      <div><span style="color: #696969;">■</span> Crater</div>
+      <div><span style="color: #8B4513;">■</span> Obstacle</div>
     `;
     
     this.mapElement.appendChild(legend);
@@ -209,12 +209,8 @@ export class MapDisplay implements IMap {
   }
   
   private getObstacleColor(type: string): string {
-    switch (type) {
-      case 'rock': return '#8B4513';
-      case 'crater': return '#696969';
-      case 'debris': return '#CD853F';
-      default: return '#FF0000';
-    }
+    // All obstacles are the same color now
+    return '#8B4513';
   }
   
   private getOrientationArrow(): string {

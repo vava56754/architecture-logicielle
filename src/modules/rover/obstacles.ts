@@ -5,25 +5,33 @@ export class Obstacles implements IObstacles {
   private obstacles: Obstacle[] = [
     {
       position: { x: 3, y: 4, z: 0 },
-      type: 'rock',
       size: 2,
       discovered: false
     },
     {
       position: { x: -2, y: 5, z: 0 },
-      type: 'crater',
       size: 3,
       discovered: false
     },
     {
       position: { x: 7, y: -1, z: 0 },
-      type: 'debris',
       size: 1,
+      discovered: false
+    },
+    {
+      position: { x: 1, y: 2, z: 0 },
+      size: 1,
+      discovered: false
+    },
+    {
+      position: { x: -1, y: -1, z: 0 },
+      size: 2,
       discovered: false
     }
   ];
 
   isPathClear(target: Position): boolean {
+    // Check if any obstacle is at the target position
     return !this.obstacles.some(obstacle => 
       obstacle.position.x === target.x && 
       obstacle.position.y === target.y && 
@@ -32,7 +40,7 @@ export class Obstacles implements IObstacles {
   }
 
   scanObstacles(): Obstacle[] {
-    // Mark all obstacles as discovered
+    // Mark all obstacles as discovered when scanning
     this.obstacles.forEach(obstacle => {
       obstacle.discovered = true;
     });
@@ -40,7 +48,6 @@ export class Obstacles implements IObstacles {
   }
 
   detectNearbyObstacles(radius: number): Obstacle[] {
-    // Simulating a rover position at 0,0,0 for simplicity
     const roverPosition = { x: 0, y: 0, z: 0 };
     
     return this.obstacles.filter(obstacle => {
@@ -65,7 +72,17 @@ export class Obstacles implements IObstacles {
       o.position.z === position.z
     );
     
-    return obstacle || null;
+    if (!obstacle) return null;
+    
+    if (!obstacle.discovered) {
+      return {
+        position: { ...obstacle.position },
+        size: 0,
+        discovered: false
+      };
+    }
+    
+    return { ...obstacle };
   }
 
   hasDiscoveredObstacle(x: number, y: number): boolean {

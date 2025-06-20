@@ -38,6 +38,7 @@ export class RoverReturn implements IRoverReturn {
     this.connected = true;
     
     let message: string;
+    let isAlert = false;
     
     if (typeof response === 'string') {
       message = response;
@@ -51,11 +52,13 @@ export class RoverReturn implements IRoverReturn {
       } else {
         message = `Received: ${JSON.stringify(response)}`;
       }
+      
+      isAlert = response.alert || response.error;
     } else {
       message = `Received unformatted response: ${response}`;
     }
     
-    this.updateOutputDisplay(message);
+    this.updateOutputDisplay(message, isAlert);
   }
   
   updateRoverStatus(status: RoverStatus): void {
@@ -97,10 +100,20 @@ export class RoverReturn implements IRoverReturn {
     return this.lastResponseTime;
   }
   
-  private updateOutputDisplay(message: string): void {
+  private updateOutputDisplay(message: string, isAlert: boolean = false): void {
     const timestamp = new Date().toISOString().replace('T', ' ').substr(0, 19);
     const entry = document.createElement('div');
     entry.className = 'output-line';
+    
+    if (isAlert) {
+      entry.style.color = '#ff0000';
+      entry.style.fontWeight = 'bold';
+      entry.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+      entry.style.padding = '5px';
+      entry.style.margin = '5px 0';
+      entry.style.borderLeft = '3px solid #ff0000';
+    }
+    
     entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
     
     this.outputElement.appendChild(entry);
