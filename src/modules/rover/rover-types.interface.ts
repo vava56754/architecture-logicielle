@@ -10,14 +10,13 @@ export interface Orientation {
 
 export interface Obstacle {
   position: Position;
-  type: 'rock' | 'crater' | 'debris';
   size: number;
   discovered?: boolean;
 }
 
 export interface Command {
   id: string;
-  type: 'Z' | 'S' | 'Q' | 'D' | 'scan' | 'return';
+  type: 'Z' | 'S' | 'Q' | 'D' | 'scan' | 'return' | 'R';
   parameters?: any;
   timestamp: Date;
 }
@@ -35,6 +34,7 @@ export interface RoverState {
   position: Position;
   orientation: Orientation;
   obstacleDetected: boolean;
+  batteryEmpty?: boolean;
   lastCommand?: Command;
 }
 
