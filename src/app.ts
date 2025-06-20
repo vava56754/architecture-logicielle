@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { RoverControl } from './modules/rover/rover-control';
 import { Obstacles } from './modules/rover/obstacles';
 import { WebSocketClient } from './modules/network/websocket';
-import { Messaging } from './modules/mission-control/Messaging';
+import { Messaging } from './modules/mission-control/messaging';
 import { MapDisplay } from './modules/ui/map';
 import { CommandInput } from './modules/ui/input';
 import { RoverReturn } from './modules/ui/rover-return';

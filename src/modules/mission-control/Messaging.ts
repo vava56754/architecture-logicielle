@@ -6,7 +6,6 @@ export class Messaging implements IMessaging {
   private commandQueue: Command[] = [];
   
   constructor(private socket: IWebSocket) {
-    // In development mode, simulate connection
     this.simulateConnection();
     
     this.socket.onMessage((data) => {
