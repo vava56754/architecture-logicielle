@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Rover Mission Control (WebSocket)</title>
+  <style>
+    body { background: #222; color: #00ff00; font-family: monospace; padding: 30px; }
+    #state { margin-top: 20px; background: #111; padding: 10px; border-radius: 8px; min-height: 60px; }
+    input, button { font-family: monospace; font-size: 1.1em; }
+    button { background: #444; color: #00ff00; border: none; padding: 8px 16px; margin-left: 10px; cursor: pointer; }
+    #log { margin-top: 20px; color: #aaa; font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <h1>Rover Mission Control (WebSocket)</h1>
+  <form id="cmdForm">
+    <input id="cmdInput" type="text" placeholder="Commandes (A R G D)" autocomplete="off" />
+    <button type="submit">Envoyer</button>
+  </form>
+  <div id="state">État du rover : <span id="roverState">(aucun)</span></div>
+  <div id="log"></div>
+  <script>
+    const ws = new WebSocket('ws://localhost:8082');
+    const stateDiv = document.getElementById('roverState');
+    const logDiv = document.getElementById('log');
+    ws.onopen = () => {
+      logDiv.textContent = 'Connecté au serveur Rover.';
+    };
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.state) {
+          stateDiv.textContent = `Position: (${msg.state.position.x}, ${msg.state.position.y}), Orientation: ${msg.state.orientation}`;
+        } else {
+          logDiv.textContent = event.data;
+        }
+      } catch {
+        logDiv.textContent = event.data;
+      }
+    };
+    ws.onerror = (e) => {
+      logDiv.textContent = 'Erreur WebSocket.';
+    };
+    document.getElementById('cmdForm').onsubmit = (e) => {
+      e.preventDefault();
+      const val = document.getElementById('cmdInput').value.trim();
+      if (val) {
+        ws.send(val);
+        document.getElementById('cmdInput').value = '';
+      }
+    };
+  </script>
+</body>
+</html> 
