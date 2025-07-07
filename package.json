@@ -4,10 +4,12 @@
   "description": "Mars Rover Mission Control Application",
   "main": "dist/app.js",
   "scripts": {
-    "start": "webpack serve --mode development",
+    "web": "webpack serve --mode development --open",
     "build": "webpack --mode production",
     "server": "node server/websocket-server.js",
-    "dev": "concurrently \"npm run server\" \"npm run start\"",
+    "rover": "ts-node --loader ts-node/esm src/rover-main.ts",
+    "mission": "ts-node --loader ts-node/esm src/mission-main.ts",
+    "dev": "concurrently \"npm run server\" \"npm run web\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

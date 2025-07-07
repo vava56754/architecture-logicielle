@@ -1,14 +1,17 @@
 // Import necessary modules and classes
 import { v4 as uuidv4 } from 'uuid';
-import { RoverControl } from './modules/rover/rover-control';
-import { Obstacles } from './modules/rover/obstacles';
-import { WebSocketClient } from './modules/network/websocket';
-import { Messaging } from './modules/mission-control/Messaging';
-import { MapDisplay } from './modules/ui/map';
-import { CommandInput } from './modules/ui/input';
-import { RoverReturn } from './modules/ui/rover-return';
-import { Command } from './modules/rover/rover-types.interface';
+import { RoverControl } from './proto/modules/rover/rover-control';
+import { Obstacles } from './proto/modules/rover/obstacles';
+import { WebSocketClient } from './proto/modules/network/websocket';
+import { Messaging } from './proto/modules/mission-control/Messaging';
+import { MapDisplay } from './proto/modules/ui/map';
+import { CommandInput } from './proto/modules/ui/input';
+import { RoverReturn } from './proto/modules/ui/rover-return';
+import { Command } from './proto/modules/rover/rover-types.interface';
 
+/**
+ * Ancienne version de l'application
+ */
 class RoverMissionApp {
   private roverControl: RoverControl;
   private obstacles: Obstacles;
