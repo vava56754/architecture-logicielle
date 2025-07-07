@@ -5,29 +5,29 @@ export class WebSocketClient implements IWebSocket {
   private messageCallback: ((data: any) => void) | null = null;
   private isConnected: boolean = false;
 
-  async connect(url: string): Promise<boolean> {
+  private async connect(url: string): Promise<boolean> {
     return new Promise((resolve) => {
       try {
         console.log(`Attempting to connect to WebSocket: ${url}`);
         this.socket = new WebSocket(url);
-        
+
         this.socket.onopen = () => {
           console.log('WebSocket connection established');
           this.isConnected = true;
           resolve(true);
         };
-        
+
         this.socket.onerror = (error) => {
           console.error('WebSocket error:', error);
           this.isConnected = false;
           resolve(false);
         };
-        
+
         this.socket.onclose = () => {
           console.log('WebSocket connection closed');
           this.isConnected = false;
         };
-        
+
         this.socket.onmessage = (event) => {
           if (this.messageCallback) {
             try {
@@ -56,7 +56,7 @@ export class WebSocketClient implements IWebSocket {
     });
   }
 
-  disconnect(): void {
+  private disconnect(): void {
     if (this.socket) {
       this.socket.close();
       this.socket = null;
@@ -69,7 +69,7 @@ export class WebSocketClient implements IWebSocket {
       console.warn("WebSocket not connected, cannot send data");
       return false;
     }
-    
+
     try {
       const jsonData = typeof data === 'string' ? data : JSON.stringify(data);
       console.log('Sending WebSocket message:', jsonData);
@@ -108,5 +108,9 @@ export class WebSocketClient implements IWebSocket {
       });
     }
     return connected;
+  }
+
+  closeConnection(): void {
+    this.disconnect();
   }
 }
