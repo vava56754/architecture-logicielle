@@ -7,7 +7,6 @@ const missionControl = new MissionControl(rover);
 let ui: any = null;
 
 if (typeof window !== 'undefined') {
-  // On est dans le navigateur
   const { WebUI } = require('./modules/ui/ui');
   ui = new WebUI(rover);
   rover.launch((msg: string) => ui.showMessage(msg));
@@ -18,7 +17,6 @@ if (typeof window !== 'undefined') {
   (window as any).missionControl = missionControl;
   (window as any).ui = ui;
 } else {
-  // On est côté Node.js
   const WebSocket = require('ws');
   const wss = new WebSocket.Server({ port: 8080 });
   console.log('WebSocket server started on ws://localhost:8080');
