@@ -8,7 +8,6 @@ export class MissionControl implements IMissionControle {
   
   async sendCommandToRover(command: Command): Promise<boolean> {
     try {
-      // Execute command directly on the rover
       switch (command.type) {
         case 'Z':
           this.rover.moveForward();
@@ -24,9 +23,6 @@ export class MissionControl implements IMissionControle {
           break;
       }
       
-      // In a real system, you would send this over a network
-      // and wait for a response from the physical rover
-      
       return true;
     } catch (error) {
       console.error('Error executing command:', error);
@@ -35,9 +31,6 @@ export class MissionControl implements IMissionControle {
   }
   
   async receiveCommand(): Promise<Command> {
-    // In a real system, you would receive commands from external sources
-    // For now, we'll just return from our queue or wait
-    
     return new Promise(resolve => {
       const checkQueue = () => {
         if (this.commandQueue.length > 0) {
@@ -49,11 +42,5 @@ export class MissionControl implements IMissionControle {
       
       checkQueue();
     });
-  }
-  
-  // Method to simulate adding commands to the queue
-  // (This would come from external sources in a real system)
-  addCommand(command: Command): void {
-    this.commandQueue.push(command);
   }
 }

@@ -71,8 +71,7 @@ export class WebUI implements IUI {
       cursor: pointer;
       margin-left: 10px;
     `;
-    
-    // Assembly
+
     inputContainer.appendChild(this.inputElement);
     inputContainer.appendChild(sendButton);
     
@@ -82,11 +81,9 @@ export class WebUI implements IUI {
     container.appendChild(inputContainer);
     
     document.body.appendChild(container);
-    
-    // Init map
+
     this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
-    
-    // Event listeners
+
     sendButton.addEventListener('click', this.handleSendCommand.bind(this));
     this.inputElement.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') this.handleSendCommand();
@@ -100,8 +97,7 @@ export class WebUI implements IUI {
     this.inputElement.value = '';
     
     this.showMessage(`Sending commands: ${commandText}`);
-    
-    // Process each character as a command
+
     for (const char of commandText) {
       let commandType: 'Z' | 'S' | 'Q' | 'D' | null = null;
       
@@ -145,7 +141,6 @@ export class WebUI implements IUI {
           break;
       }
       
-      // Update map after command
       this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
       
     } catch (error) {
@@ -164,7 +159,6 @@ export class WebUI implements IUI {
   }
 
   promptCommand(): Promise<Command> {
-    // This is handled through the UI events now
     return Promise.resolve({
       id: uuidv4(),
       type: 'Z',
@@ -176,10 +170,18 @@ export class WebUI implements IUI {
     if (!this.mapElement) return;
     
     this.mapElement.innerHTML = '';
-    
-    // Create grid
-    const gridSize = 11; // 11x11 grid with center at (5,5)
+
+    const gridSize = 11; 
     const cellSize = 25;
+    const gridRadius = Math.floor(gridSize / 2);
+
+    const toroidalWrap = (coord: number) => {
+      const range = gridRadius * 2 + 1;
+      return ((coord % range) + range) % range - gridRadius;
+    };
+
+    const toroidalX = toroidalWrap(position.x);
+    const toroidalY = toroidalWrap(position.y);
     
     for (let y = 0; y < gridSize; y++) {
       for (let x = 0; x < gridSize; x++) {
@@ -193,20 +195,15 @@ export class WebUI implements IUI {
           border: 1px solid #333;
         `;
         
-        // Convert to map coordinates
-        const mapX = x - Math.floor(gridSize / 2);
-        const mapY = Math.floor(gridSize / 2) - y;
-        
-        // Highlight center
-        if (x === Math.floor(gridSize / 2) && y === Math.floor(gridSize / 2)) {
+        const mapX = x - gridRadius;
+        const mapY = gridRadius - y;
+        if (x === gridRadius && y === gridRadius) {
           cell.style.backgroundColor = '#333';
         }
-        
-        // Show rover
-        if (mapX === position.x && mapY === position.y) {
+
+        if (mapX === toroidalX && mapY === toroidalY) {
           cell.style.backgroundColor = '#0f0';
           
-          // Show orientation
           let arrow = '●';
           switch (orientation) {
             case 'N': arrow = '↑'; break;
@@ -217,15 +214,13 @@ export class WebUI implements IUI {
           
           cell.innerHTML = `<div style="text-align:center;line-height:${cellSize-1}px">${arrow}</div>`;
         }
-        
-        // Show coordinates in tooltip
+
         cell.title = `(${mapX}, ${mapY})`;
         
         this.mapElement.appendChild(cell);
       }
     }
     
-    // Show position info
     const posInfo = document.createElement('div');
     posInfo.style.cssText = `
       position: absolute;
@@ -234,7 +229,8 @@ export class WebUI implements IUI {
       color: #0f0;
       font-size: 12px;
     `;
-    posInfo.textContent = `Position: (${position.x}, ${position.y}), Facing: ${orientation}`;
+
+    posInfo.textContent = `Position: (${position.x}, ${position.y}) [Map: (${toroidalX}, ${toroidalY})], Facing: ${orientation}`;
     this.mapElement.appendChild(posInfo);
   }
 }
