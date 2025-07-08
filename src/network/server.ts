@@ -1,24 +1,34 @@
-let wsServer: any = null;
-let onMessageCallback: ((msg: string) => void) | null = null;
+import { IServer } from "./server.interface";
 
-export function startWebSocketServer() {
-  const WebSocket = require('ws');
-  wsServer = new WebSocket.Server({ port: 8080 });
-  wsServer.on('connection', (ws: any) => {
-    ws.on('message', (message: string) => {
-      if (onMessageCallback) onMessageCallback(message.toString());
-    });
-  });
-}
+export class WebSocketServer implements IServer {
+  private wsServer: any = null;
+  private onMessageCallback: ((msg: string) => void) | null = null;
 
-export function onMessage(cb: (msg: string) => void) {
-  onMessageCallback = cb;
-}
+  constructor() {
+    const WebSocket = require('ws');
+    this.wsServer = new WebSocket.Server({ port: 8080 });
+  }
 
-export function sendMessage(msg: string) {
-  if (wsServer && wsServer.clients) {
-    wsServer.clients.forEach((client: any) => {
-      if (client.readyState === 1) client.send(msg);
+  startWebSocketServer() {
+    const WebSocket = require('ws');
+    this.wsServer = new WebSocket.Server({ port: 8080 });
+    this.wsServer.on('connection', (ws: any) => {
+      ws.on('message', (message: string) => {
+        if (this.onMessageCallback) this.onMessageCallback(message.toString());
+      });
     });
   }
+  
+  onMessage(cb: (msg: string) => void) {
+    this.onMessageCallback = cb;
+  }
+  
+  sendMessage(msg: string) {
+    if (this.wsServer && this.wsServer.clients) {
+      this.wsServer.clients.forEach((client: any) => {
+        if (client.readyState === 1) client.send(msg);
+      });
+    }
+  }
 }
+

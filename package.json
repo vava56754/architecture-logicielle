@@ -4,9 +4,10 @@
   "description": "Mars Rover Mission Control Application",
   "main": "dist/app.js",
   "scripts": {
-    "start": "webpack serve",
-    "build": "webpack",
-    "dev": "webpack --watch"
+    "start:node": "npx ts-node src/main.node.ts",
+    "start:browser": "webpack serve",
+    "dev": "concurrently \"npm run start:node\" \"npm run start:browser\"",
+    "build": "webpack"
   },
   "dependencies": {
     "uuid": "^9.0.1",

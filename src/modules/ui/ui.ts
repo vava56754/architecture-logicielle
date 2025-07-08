@@ -122,7 +122,7 @@ export class WebUI implements IUI {
       }
     }
   }
-
+  
   private executeCommand(command: Command): boolean | void {
     try {
       switch (command.type) {
@@ -134,7 +134,7 @@ export class WebUI implements IUI {
             return res;
           } else {
             const res = this.rover.moveForward();
-            this.showMessage(`Moved forward`);
+          this.showMessage(`Moved forward`);
             this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
             return res;
           }
@@ -146,7 +146,7 @@ export class WebUI implements IUI {
             return res;
           } else {
             const res = this.rover.moveBackward();
-            this.showMessage(`Moved backward`);
+          this.showMessage(`Moved backward`);
             this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
             return res;
           }
