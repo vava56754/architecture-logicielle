@@ -114,23 +114,42 @@ export class WebUI implements IUI {
           type: commandType,
           timestamp: new Date()
         };
-        
-        this.executeCommand(command);
+        const result = this.executeCommand(command);
+        if (result === false) {
+          this.showMessage('Arrêt de la séquence : obstacle rencontré.');
+          break;
+        }
       }
     }
   }
-  
-  private executeCommand(command: Command): void {
+
+  private executeCommand(command: Command): boolean | void {
     try {
       switch (command.type) {
         case 'Z':
-          this.rover.moveForward();
-          this.showMessage(`Moved forward`);
-          break;
+          if ((this.rover as any).moveForward.length > 0) {
+            const res = (this.rover as any).moveForward((msg: string) => this.showMessage(msg));
+            this.showMessage(`Moved forward`);
+            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            return res;
+          } else {
+            const res = this.rover.moveForward();
+            this.showMessage(`Moved forward`);
+            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            return res;
+          }
         case 'S':
-          this.rover.moveBackward();
-          this.showMessage(`Moved backward`);
-          break;
+          if ((this.rover as any).moveBackward.length > 0) {
+            const res = (this.rover as any).moveBackward((msg: string) => this.showMessage(msg));
+            this.showMessage(`Moved backward`);
+            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            return res;
+          } else {
+            const res = this.rover.moveBackward();
+            this.showMessage(`Moved backward`);
+            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            return res;
+          }
         case 'Q':
           this.rover.turnLeft();
           this.showMessage(`Turned left`);
@@ -140,9 +159,7 @@ export class WebUI implements IUI {
           this.showMessage(`Turned right`);
           break;
       }
-      
       this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
-      
     } catch (error) {
       this.showMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -202,7 +219,7 @@ export class WebUI implements IUI {
         }
 
         if (mapX === toroidalX && mapY === toroidalY) {
-          cell.style.backgroundColor = '#0f0';
+          cell.style.backgroundColor = '#333';
           
           let arrow = '●';
           switch (orientation) {
@@ -230,7 +247,7 @@ export class WebUI implements IUI {
       font-size: 12px;
     `;
 
-    posInfo.textContent = `Position: (${position.x}, ${position.y}) [Map: (${toroidalX}, ${toroidalY})], Facing: ${orientation}`;
+    posInfo.textContent = `[Map: (${toroidalX}, ${toroidalY})], Facing: ${orientation}`;
     this.mapElement.appendChild(posInfo);
   }
 }

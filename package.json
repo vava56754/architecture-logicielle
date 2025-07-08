@@ -4,28 +4,24 @@
   "description": "Mars Rover Mission Control Application",
   "main": "dist/app.js",
   "scripts": {
-    "web": "webpack serve --mode development --open",
-    "build": "webpack --mode production",
-    "server": "node server/websocket-server.js",
-    "rover": "ts-node --loader ts-node/esm src/rover-main.ts",
-    "mission": "ts-node --loader ts-node/esm src/mission-main.ts",
-    "dev": "concurrently \"npm run server\" \"npm run web\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "webpack serve",
+    "build": "webpack",
+    "dev": "webpack --watch"
   },
   "dependencies": {
-    "uuid": "^9.0.0",
+    "uuid": "^9.0.1",
     "ws": "^8.18.2"
   },
   "devDependencies": {
-    "@types/uuid": "^9.0.1",
+    "@types/uuid": "^9.0.8",
     "@types/ws": "^8.18.1",
     "concurrently": "^8.2.2",
-    "html-webpack-plugin": "^5.5.0",
-    "ts-loader": "^9.4.2",
-    "typescript": "^5.0.4",
-    "webpack": "^5.80.0",
-    "webpack-cli": "^5.0.2",
-    "webpack-dev-server": "^4.13.3"
+    "html-webpack-plugin": "^5.6.3",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^4.15.2"
   },
   "private": true
 }

@@ -6,23 +6,24 @@ export class MissionControl implements IMissionControle {
   
   constructor(private rover: IRover) {}
   
-  async sendCommandToRover(command: Command): Promise<boolean> {
+  async sendCommandToRover(command: Command, onError?: (msg: string) => void): Promise<boolean> {
     try {
       switch (command.type) {
         case 'Z':
-          this.rover.moveForward();
-          break;
+          return (this.rover as any).moveForward.length > 0
+            ? (this.rover as any).moveForward(onError)
+            : Boolean(this.rover.moveForward());
         case 'S':
-          this.rover.moveBackward();
-          break;
+          return (this.rover as any).moveBackward.length > 0
+            ? (this.rover as any).moveBackward(onError)
+            : Boolean(this.rover.moveBackward());
         case 'Q':
           this.rover.turnLeft();
-          break;
+          return true;
         case 'D':
           this.rover.turnRight();
-          break;
+          return true;
       }
-      
       return true;
     } catch (error) {
       console.error('Error executing command:', error);
