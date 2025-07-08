@@ -5,18 +5,18 @@ export interface Position {
   y: number;
 }
 
-export interface RoverState {
-  position: Position;
-  orientation: Orientation;
-}
-
 export interface IRover {
   getPosition(): Position;
   getOrientation(): Orientation;
-  getState(): RoverState;
+  moveForward(): void;
+  moveBackward(): void;
+  turnLeft(): void;
+  turnRight(): void;
+}
 
-  moveForward(): RoverState;
-  moveBackward(): RoverState;
-  turnLeft(): RoverState;
-  turnRight(): RoverState;
-} 
+export type Command = {
+  id: string;
+  type: 'Z' | 'S' | 'Q' | 'D';
+  parameters?: any;
+  timestamp: Date;
+}; 
