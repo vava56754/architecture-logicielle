@@ -12,6 +12,7 @@ export interface IRover {
   moveBackward(): void;
   turnLeft(): void;
   turnRight(): void;
+  launch?(onStatusUpdate?: (msg: string) => void): Promise<void>;
 }
 
 export type Command = {
