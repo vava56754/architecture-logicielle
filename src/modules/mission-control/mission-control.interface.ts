@@ -1,6 +1,6 @@
-import { Command } from '../rover/rover-types.interface';
+import { Command } from "../rover/rover.interface";
 
-export interface IMessaging {
+export interface IMissionControle {
   sendCommandToRover(command: Command): Promise<boolean>;
   receiveCommand(): Promise<Command>;
 }
