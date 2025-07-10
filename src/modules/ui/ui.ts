@@ -130,24 +130,24 @@ export class WebUI implements IUI {
           if ((this.rover as any).moveForward.length > 0) {
             const res = (this.rover as any).moveForward((msg: string) => this.showMessage(msg));
             this.showMessage(`Moved forward`);
-            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            this.updateMap(this.rover.getPosition(), (this.rover as any).getDiscoveredObstacles ? (this.rover as any).getDiscoveredObstacles() : [], this.rover.getOrientation());
             return res;
           } else {
             const res = this.rover.moveForward();
-          this.showMessage(`Moved forward`);
-            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            this.showMessage(`Moved forward`);
+            this.updateMap(this.rover.getPosition(), (this.rover as any).getDiscoveredObstacles ? (this.rover as any).getDiscoveredObstacles() : [], this.rover.getOrientation());
             return res;
           }
         case 'S':
           if ((this.rover as any).moveBackward.length > 0) {
             const res = (this.rover as any).moveBackward((msg: string) => this.showMessage(msg));
             this.showMessage(`Moved backward`);
-            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            this.updateMap(this.rover.getPosition(), (this.rover as any).getDiscoveredObstacles ? (this.rover as any).getDiscoveredObstacles() : [], this.rover.getOrientation());
             return res;
           } else {
             const res = this.rover.moveBackward();
-          this.showMessage(`Moved backward`);
-            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            this.showMessage(`Moved backward`);
+            this.updateMap(this.rover.getPosition(), (this.rover as any).getDiscoveredObstacles ? (this.rover as any).getDiscoveredObstacles() : [], this.rover.getOrientation());
             return res;
           }
         case 'Q':
@@ -159,7 +159,7 @@ export class WebUI implements IUI {
           this.showMessage(`Turned right`);
           break;
       }
-      this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+      this.updateMap(this.rover.getPosition(), (this.rover as any).getDiscoveredObstacles ? (this.rover as any).getDiscoveredObstacles() : [], this.rover.getOrientation());
     } catch (error) {
       this.showMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -211,16 +211,23 @@ export class WebUI implements IUI {
           height: ${cellSize - 1}px;
           border: 1px solid #333;
         `;
-        
-        const mapX = x - gridRadius;
-        const mapY = gridRadius - y;
+        // Correction : coordonnées absolues de la case
+        const mapX = x - gridRadius + position.x;
+        const mapY = gridRadius - y + position.y;
+        // Affichage toroïdal des obstacles découverts
+        const isSameToroidal = (a: number, b: number) => {
+          const range = gridSize;
+          return ((a % range) + range) % range === ((b % range) + range) % range;
+        };
+        if (obstacles.some((o: any) => isSameToroidal(o.x, mapX) && isSameToroidal(o.y, mapY))) {
+          cell.style.backgroundColor = '#a00';
+        }
+        // Centre de la grille (rover)
         if (x === gridRadius && y === gridRadius) {
           cell.style.backgroundColor = '#333';
         }
-
-        if (mapX === toroidalX && mapY === toroidalY) {
+        if (mapX === position.x && mapY === position.y) {
           cell.style.backgroundColor = '#333';
-          
           let arrow = '●';
           switch (orientation) {
             case 'N': arrow = '↑'; break;
@@ -228,16 +235,12 @@ export class WebUI implements IUI {
             case 'S': arrow = '↓'; break;
             case 'W': arrow = '←'; break;
           }
-          
           cell.innerHTML = `<div style="text-align:center;line-height:${cellSize-1}px">${arrow}</div>`;
         }
-
         cell.title = `(${mapX}, ${mapY})`;
-        
         this.mapElement.appendChild(cell);
       }
     }
-    
     const posInfo = document.createElement('div');
     posInfo.style.cssText = `
       position: absolute;
@@ -246,7 +249,6 @@ export class WebUI implements IUI {
       color: #0f0;
       font-size: 12px;
     `;
-
     posInfo.textContent = `[Map: (${toroidalX}, ${toroidalY})], Facing: ${orientation}`;
     this.mapElement.appendChild(posInfo);
   }

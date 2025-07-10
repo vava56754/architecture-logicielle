@@ -8,9 +8,18 @@ export class Rover implements IRover {
     { x: 0, y: 3 },
     { x: -1, y: 1 }
   ];
+  private discoveredObstacles: Position[] = [];
+  private mapSize = 11;
+
+  private isSameToroidal(a: number, b: number): boolean {
+    const range = this.mapSize;
+    return ((a % range) + range) % range === ((b % range) + range) % range;
+  }
 
   private isObstacle(pos: Position): boolean {
-    return this.obstacles.some(o => o.x === pos.x && o.y === pos.y);
+    return this.obstacles.some(o =>
+      this.isSameToroidal(o.x, pos.x) && this.isSameToroidal(o.y, pos.y)
+    );
   }
 
   getPosition(): Position {
@@ -30,6 +39,9 @@ export class Rover implements IRover {
       case 'W': nextPos.x -= 1; break;
     }
     if (this.isObstacle(nextPos)) {
+      if (!this.discoveredObstacles.some(o => o.x === nextPos.x && o.y === nextPos.y)) {
+        this.discoveredObstacles.push({ ...nextPos });
+      }
       if (onError) onError('Obstacle rencontré en avançant !');
       return false;
     }
@@ -46,6 +58,9 @@ export class Rover implements IRover {
       case 'W': nextPos.x += 1; break;
     }
     if (this.isObstacle(nextPos)) {
+      if (!this.discoveredObstacles.some(o => o.x === nextPos.x && o.y === nextPos.y)) {
+        this.discoveredObstacles.push({ ...nextPos });
+      }
       if (onError) onError('Obstacle rencontré en reculant !');
       return false;
     }
@@ -63,6 +78,10 @@ export class Rover implements IRover {
     const order: Orientation[] = ['N', 'E', 'S', 'W'];
     const idx = order.indexOf(this.orientation);
     this.orientation = order[(idx + 1) % 4];
+  }
+
+  getDiscoveredObstacles(): Position[] {
+    return this.discoveredObstacles.map(o => ({ ...o }));
   }
 
   public async launch(onStatusUpdate?: (msg: string) => void): Promise<void> {
