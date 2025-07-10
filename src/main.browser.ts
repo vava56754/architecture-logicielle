@@ -1,8 +1,10 @@
-import { IRover } from './modules/rover/rover.interface';
 import { IUI } from './modules/ui/ui.interface';
-import { Rover } from './modules/rover/rover';
+import { Rover } from './modules/rover/rover-control';
+import { Obstacles } from './modules/rover/obstacles';
+import { IRover } from './modules/rover/types';
 
-const rover: IRover = new Rover();
+const obstacles = new Obstacles();
+const rover: IRover = new Rover(obstacles);
 const { WebUI } = require('./modules/ui/ui');
 const ui: IUI = new WebUI(rover);
 

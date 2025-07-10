@@ -1,5 +1,5 @@
+import { Command, IRover } from '../rover/types';
 import { IUI } from './ui.interface';
-import { IRover, Command } from '../rover/rover.interface';
 import { v4 as uuidv4 } from 'uuid';
 
 export class WebUI implements IUI {
@@ -59,7 +59,7 @@ export class WebUI implements IUI {
       color: #0f0;
       border: 1px solid #0f0;
     `;
-    this.inputElement.placeholder = 'Enter commands (Z, S, Q, D)';
+    this.inputElement.placeholder = 'Enter commands (Z, S, Q, D) or SCAN';
     
     const sendButton = document.createElement('button');
     sendButton.textContent = 'Send';
@@ -98,6 +98,13 @@ export class WebUI implements IUI {
     
     this.showMessage(`Sending commands: ${commandText}`);
 
+    // Commandes spéciales
+    if (commandText === 'SCAN') {
+      this.executeScanCommand();
+      return;
+    }
+
+    // Commandes normales (séquence de caractères)
     for (const char of commandText) {
       let commandType: 'Z' | 'S' | 'Q' | 'D' | null = null;
       
@@ -115,11 +122,19 @@ export class WebUI implements IUI {
           timestamp: new Date()
         };
         const result = this.executeCommand(command);
-        if (result === false) {
-          this.showMessage('Arrêt de la séquence : obstacle rencontré.');
-          break;
-        }
+        // Plus de vérification de batterie vide - le rover continue toujours
       }
+    }
+  }
+  
+  private executeScanCommand(): void {
+    const currentPosition = this.rover.getPosition();
+    const roverInstance = this.rover as any;
+    
+    if (roverInstance.obstacles && roverInstance.obstacles.discoverObstaclesInRadius) {
+      roverInstance.obstacles.discoverObstaclesInRadius(currentPosition, 2);
+      this.showMessage('Scan effectué dans un rayon de 2 cases. Obstacles découverts !');
+      this.updateMap(currentPosition, [], this.rover.getOrientation());
     }
   }
   
@@ -127,28 +142,26 @@ export class WebUI implements IUI {
     try {
       switch (command.type) {
         case 'Z':
-          if ((this.rover as any).moveForward.length > 0) {
-            const res = (this.rover as any).moveForward((msg: string) => this.showMessage(msg));
+          const forwardResult = this.rover.moveForward();
+          if (forwardResult && forwardResult.obstacleDetected) {
+            this.showMessage('Obstacle détecté en avançant ! Position inchangée.');
+            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            return true; // Continue l'exécution des commandes
+          } else {
             this.showMessage(`Moved forward`);
             this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
-            return res;
-          } else {
-            const res = this.rover.moveForward();
-          this.showMessage(`Moved forward`);
-            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
-            return res;
+            return true;
           }
         case 'S':
-          if ((this.rover as any).moveBackward.length > 0) {
-            const res = (this.rover as any).moveBackward((msg: string) => this.showMessage(msg));
+          const backwardResult = this.rover.moveBackward();
+          if (backwardResult && backwardResult.obstacleDetected) {
+            this.showMessage('Obstacle détecté en reculant ! Position inchangée.');
+            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
+            return true; // Continue l'exécution des commandes
+          } else {
             this.showMessage(`Moved backward`);
             this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
-            return res;
-          } else {
-            const res = this.rover.moveBackward();
-          this.showMessage(`Moved backward`);
-            this.updateMap(this.rover.getPosition(), [], this.rover.getOrientation());
-            return res;
+            return true;
           }
         case 'Q':
           this.rover.turnLeft();
@@ -183,23 +196,22 @@ export class WebUI implements IUI {
     });
   }
 
-  updateMap(position: { x: number; y: number; }, obstacles: any[], orientation: any): void {
+  updateMap(position: { x: number; y: number; z?: number }, obstacles: any[], orientation: any): void {
     if (!this.mapElement) return;
     
     this.mapElement.innerHTML = '';
 
-    const gridSize = 11; 
-    const cellSize = 25;
-    const gridRadius = Math.floor(gridSize / 2);
+    const gridSize = 15; // Taille de la fenêtre visible (15x15)
+    const cellSize = 20;
+    const gridRadius = Math.floor(gridSize / 2); // 7
 
-    const toroidalWrap = (coord: number) => {
-      const range = gridRadius * 2 + 1;
-      return ((coord % range) + range) % range - gridRadius;
-    };
+    // Le rover est toujours au centre de la grille
+    const centerX = gridRadius;
+    const centerY = gridRadius;
 
-    const toroidalX = toroidalWrap(position.x);
-    const toroidalY = toroidalWrap(position.y);
-    
+    // Obtenir les obstacles découverts depuis la classe Obstacles
+    const discoveredObstacles = (this.rover as any).obstacles?.scanObstacles() || [];
+
     for (let y = 0; y < gridSize; y++) {
       for (let x = 0; x < gridSize; x++) {
         const cell = document.createElement('div');
@@ -210,15 +222,29 @@ export class WebUI implements IUI {
           width: ${cellSize - 1}px;
           height: ${cellSize - 1}px;
           border: 1px solid #333;
+          background-color: #111;
+          color: #0f0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
         `;
         
-        const mapX = x - gridRadius;
-        const mapY = gridRadius - y;
-        if (x === gridRadius && y === gridRadius) {
-          cell.style.backgroundColor = '#333';
-        }
+        // Calculer les coordonnées mondiales correspondantes
+        const worldX = position.x + (x - centerX);
+        const worldY = position.y + (centerY - y); // Inverser Y car l'affichage va de haut en bas
 
-        if (mapX === toroidalX && mapY === toroidalY) {
+        // Normaliser les coordonnées pour la logique toroïdale (0-49)
+        const normalizedX = ((worldX % 50) + 50) % 50;
+        const normalizedY = ((worldY % 50) + 50) % 50;
+
+        // Vérifier s'il y a un obstacle découvert à cette position
+        const obstacle = discoveredObstacles.find((obs: any) => 
+          obs.position.x === normalizedX && obs.position.y === normalizedY
+        );
+
+        if (x === centerX && y === centerY) {
+          // Le rover est toujours au centre
           cell.style.backgroundColor = '#333';
           
           let arrow = '●';
@@ -229,10 +255,14 @@ export class WebUI implements IUI {
             case 'W': arrow = '←'; break;
           }
           
-          cell.innerHTML = `<div style="text-align:center;line-height:${cellSize-1}px">${arrow}</div>`;
+          cell.innerHTML = arrow;
+        } else if (obstacle) {
+          // Afficher l'obstacle découvert
+          cell.style.backgroundColor = '#800';
+          cell.innerHTML = '█';
         }
 
-        cell.title = `(${mapX}, ${mapY})`;
+        cell.title = `World: (${worldX}, ${worldY})`;
         
         this.mapElement.appendChild(cell);
       }
@@ -247,7 +277,7 @@ export class WebUI implements IUI {
       font-size: 12px;
     `;
 
-    posInfo.textContent = `[Map: (${toroidalX}, ${toroidalY})], Facing: ${orientation}`;
+    posInfo.textContent = `Position: (${position.x}, ${position.y}), Facing: ${orientation}, Battery: ${(this.rover as any).getBattery ? (this.rover as any).getBattery() : 'N/A'}%`;
     this.mapElement.appendChild(posInfo);
   }
 }

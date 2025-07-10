@@ -1,5 +1,5 @@
-import { Command } from '../rover/rover.interface';
-
+import { Command } from "../rover/types";
+ 
 export interface IUI {
   showMessage(message: string): void;
   promptCommand(): Promise<Command>;
