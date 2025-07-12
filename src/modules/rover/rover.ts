@@ -1,55 +1,100 @@
-import { IRover, Position, Orientation, RoverState } from './rover.interface';
+import { IRover, Position, Orientation } from './rover.interface';
 
 export class Rover implements IRover {
-  private state: RoverState;
+  private position: Position = { x: 0, y: 0 };
+  private orientation: Orientation = 'N';
+  private obstacles: Position[] = [
+    { x: 1, y: 2 },
+    { x: 0, y: 3 },
+    { x: -1, y: 1 }
+  ];
+  private discoveredObstacles: Position[] = [];
+  private mapSize = 11;
 
-  constructor(initial: RoverState = { position: { x: 0, y: 0 }, orientation: 'N' }) {
-    this.state = { ...initial };
+  private isSameToroidal(a: number, b: number): boolean {
+    const range = this.mapSize;
+    return ((a % range) + range) % range === ((b % range) + range) % range;
   }
 
-  getState(): RoverState {
-    return { ...this.state };
+  private isObstacle(pos: Position): boolean {
+    return this.obstacles.some(o =>
+      this.isSameToroidal(o.x, pos.x) && this.isSameToroidal(o.y, pos.y)
+    );
   }
 
   getPosition(): Position {
-    return { ...this.state.position };
+    return { ...this.position };
   }
 
   getOrientation(): Orientation {
-    return this.state.orientation;
+    return this.orientation;
   }
 
-  moveForward(): RoverState {
-    switch (this.state.orientation) {
-      case 'N': this.state.position.y += 1; break;
-      case 'E': this.state.position.x += 1; break;
-      case 'S': this.state.position.y -= 1; break;
-      case 'W': this.state.position.x -= 1; break;
+  moveForward(onError?: (msg: string) => void): boolean {
+    const nextPos = { ...this.position };
+    switch (this.orientation) {
+      case 'N': nextPos.y += 1; break;
+      case 'E': nextPos.x += 1; break;
+      case 'S': nextPos.y -= 1; break;
+      case 'W': nextPos.x -= 1; break;
     }
-    return this.getState();
-  }
-
-  moveBackward(): RoverState {
-    switch (this.state.orientation) {
-      case 'N': this.state.position.y -= 1; break;
-      case 'E': this.state.position.x -= 1; break;
-      case 'S': this.state.position.y += 1; break;
-      case 'W': this.state.position.x += 1; break;
+    if (this.isObstacle(nextPos)) {
+      if (!this.discoveredObstacles.some(o => o.x === nextPos.x && o.y === nextPos.y)) {
+        this.discoveredObstacles.push({ ...nextPos });
+      }
+      if (onError) onError('Obstacle rencontré en avançant !');
+      return false;
     }
-    return this.getState();
+    this.position = nextPos;
+    return true;
   }
 
-  turnLeft(): RoverState {
+  moveBackward(onError?: (msg: string) => void): boolean {
+    const nextPos = { ...this.position };
+    switch (this.orientation) {
+      case 'N': nextPos.y -= 1; break;
+      case 'E': nextPos.x -= 1; break;
+      case 'S': nextPos.y += 1; break;
+      case 'W': nextPos.x += 1; break;
+    }
+    if (this.isObstacle(nextPos)) {
+      if (!this.discoveredObstacles.some(o => o.x === nextPos.x && o.y === nextPos.y)) {
+        this.discoveredObstacles.push({ ...nextPos });
+      }
+      if (onError) onError('Obstacle rencontré en reculant !');
+      return false;
+    }
+    this.position = nextPos;
+    return true;
+  }
+
+  turnLeft(): void {
     const order: Orientation[] = ['N', 'W', 'S', 'E'];
-    const idx = order.indexOf(this.state.orientation);
-    this.state.orientation = order[(idx + 1) % 4];
-    return this.getState();
+    const idx = order.indexOf(this.orientation);
+    this.orientation = order[(idx + 1) % 4];
   }
 
-  turnRight(): RoverState {
+  turnRight(): void {
     const order: Orientation[] = ['N', 'E', 'S', 'W'];
-    const idx = order.indexOf(this.state.orientation);
-    this.state.orientation = order[(idx + 1) % 4];
-    return this.getState();
+    const idx = order.indexOf(this.orientation);
+    this.orientation = order[(idx + 1) % 4];
+  }
+
+  getDiscoveredObstacles(): Position[] {
+    return this.discoveredObstacles.map(o => ({ ...o }));
+  }
+
+  public async launch(onStatusUpdate?: (msg: string) => void): Promise<void> {
+    const notify = (msg: string) => {
+      if (onStatusUpdate) onStatusUpdate(msg);
+      console.log(msg);
+    };
+    notify('Décollage en cours...');
+    await new Promise(res => setTimeout(res, 1000));
+    notify('Arrivée sur Mars...');
+    await new Promise(res => setTimeout(res, 1000));
+    notify('Connexion au Rover...');
+    await new Promise(res => setTimeout(res, 1000));
+    notify('Le Rover a décollé et commence sa mission sur Mars !');
   }
 }
